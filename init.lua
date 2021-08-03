@@ -1040,9 +1040,6 @@ end
 
 MAD.pixels = {}
 
-
-MAD.pixels.img_rick = image.load(MAD.pixels.file_rick)
-
 MAD.pixels.create = {}
 
 function MAD.pixels.create.uniform(opt)
@@ -1825,10 +1822,6 @@ function MAD.pixels.img.box(img, rgb, s)
    box[{ {},{t,b},{l,r} }] = img
    return box
 end
-
-
-local ifile = MAD.pixels.file_rick
-
 function MAD.pixels.img.shortEdgeScale(img, shortedge)
    local shortEdge = 332
    local dims = #img
