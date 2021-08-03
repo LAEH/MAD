@@ -1536,7 +1536,7 @@ function MAD.pixels.color.invert(img)
 end
 function MAD.pixels.color.filter(img,opt)
     local opt = opt or {}
-    local img = img or 
+    local img = img
     local rdm_min = torch.uniform(0.1,0.5)
     local rdm_max = torch.uniform(0.5,0.9)
 
