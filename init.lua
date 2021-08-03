@@ -47,10 +47,7 @@ function MAD.rdmidx(min, max)
 end
 
 
-function MAD.jay.img()
-    local img = image.load("assets/jay.jpg", 3, 'float' )
-    return img
-end
+
 MAD.blue = col.blue
 function MAD.file2id(file)
     return stringx.replace(path.basename(file), path.extension(file), '')
@@ -1367,7 +1364,7 @@ end
 MAD.pixels.img.dim = {}
 
 function MAD.pixels.img.dim.white(img, factor)
-    local img = img or MAD.jay.img()
+    local img = img
     local factor = factor or 2
     local iw, ih = (#img)[3], (#img)[2]
     local white = torch.FloatTensor(3, ih, iw):uniform(1,1)
@@ -1376,7 +1373,7 @@ function MAD.pixels.img.dim.white(img, factor)
     return result
 end
 function MAD.pixels.img.dim.black(img, factor)
-    local img = img or MAD.jay.img()
+    local img = img
     local factor = factor or 2
     local iw, ih = (#img)[3], (#img)[2]
     local black = torch.FloatTensor(3, ih, iw):uniform(0,0)
@@ -1518,38 +1515,7 @@ function MAD.pixels.shuffle.cut(ifile, opt)
     local img = img:transpose(3,4):reshape(3,ih,iw)
     return img
 end
-function MAD.pixels.shuffle.TEST()
-    local f_test = MAD.pixels.assets..'jay.jpg'
-    function MAD.pixels.shuffle.global_TEST()
-        MAD.pixels.show( MAD.pixels.shuffle.global(f_test) )
-    end
-    -- MAD.pixels.shuffle.global_TEST()
-    function MAD.pixels.shuffle.gaussian_TEST()
-        MAD.pixels.show( MAD.pixels.shuffle.gaussian(f_test, {spread = 64}) )
-    end
-    -- MAD.pixels.shuffle.gaussian_TEST()
-    function MAD.pixels.shuffle.bin_TEST()
-        local ifile = fs.pussy
-        local out = MAD.pixels.shuffle.bin(f_test, {
-            ih = 512,
-            iw = 512,
-            ncol = 2,
-            nrow = 2,
-        })
-        MAD.pixels.show(out, 'pussy')
-    end
-    -- MAD.pixels.shuffle.bin_TEST()
-    function MAD.pixels.shuffle.cut_TEST()
-        local out = MAD.pixels.shuffle.cut(f_test, {
-            ih = 1024,
-            iw = 1024,
-            ncol = 16,
-            nrow = 16,
-        })
-        MAD.pixels.show(out)
-    end
-    -- MAD.pixels.shuffle.cut_TEST()
-end
+
 
 MAD.pixels.color = {}
 function MAD.pixels.color.rotate(opt)
@@ -1570,7 +1536,7 @@ function MAD.pixels.color.invert(img)
 end
 function MAD.pixels.color.filter(img,opt)
     local opt = opt or {}
-    local img = img or jay
+    local img = img or 
     local rdm_min = torch.uniform(0.1,0.5)
     local rdm_max = torch.uniform(0.5,0.9)
 
