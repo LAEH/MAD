@@ -47,9 +47,6 @@ function MAD.rdmidx(min, max)
 end
 
 
-MAD.jay = {}
-MAD.rick = "assets/rick.jpg"
-MAD.jay.file = "assets/jay.jpg"
 function MAD.jay.img()
     local img = image.load("assets/jay.jpg", 3, 'float' )
     return img
@@ -1046,7 +1043,6 @@ end
 
 MAD.pixels = {}
 
-MAD.pixels.file_rick = "assets/rick.jpg"
 
 MAD.pixels.img_rick = image.load(MAD.pixels.file_rick)
 
