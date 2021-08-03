@@ -1043,6 +1043,854 @@ function MAD.sortDown(list, dim)
     return list
 end
 
+
+MAD.pixels = {}
+
+MAD.pixels.file_rick = "assets/rick.jpg"
+
+MAD.pixels.img_rick = image.load(MAD.pixels.file_rick)
+
+MAD.pixels.create = {}
+
+function MAD.pixels.create.uniform(opt)
+   opt = opt or {}
+   local size = opt.size or 256
+   local map = torch.ByteTensor(3,size,size)
+
+   map[1] = torch.uniform(0,255)
+   map[2] = torch.uniform(0,255)
+   map[3] = torch.uniform(0,255)
+   return map
+end
+function MAD.pixels.create.rdmgrad(opt)
+   local function R() return torch.random(0,255)/255 end
+   local function G() return torch.random(0,255)/255 end
+   local function B() return torch.random(0,255)/255 end
+   opt = opt or {}
+   local w = opt.w or 512
+   local h = opt.h or 512
+
+   local colors = {
+      {R(),G(),B()},
+      {R(),G(),B()},
+      {R(),G(),B()},
+      {R(),G(),B()},
+   }
+   local tl = opt.tl or colors[1]
+   local tr = opt.tr or colors[2]
+   local br = opt.br or colors[3]
+   local bl = opt.bl or colors[4]
+
+   local img = torch.FloatTensor({{tl,tr},{br,bl}})
+   img = img:transpose(1,3)
+   img = img:transpose(2,3)
+   img = image.scale(img,w,h)
+   return img
+end
+
+MAD.pixels.ifile = {}
+function MAD.pixels.ifile.paddedbox(file, box)
+   local img = image.load(file)
+   local iw = (#img)[3]
+   local ih = (#img)[2]
+   local ir = iw / ih
+   local s = (#box)[3]
+
+   local w,h,t,b,l,r
+
+   if ir > 1 then
+      w = s
+      h = math.floor(s/ir)
+      t = math.ceil((s-h)/2)
+      b = t + h -1
+      l = 1
+      r = s
+   elseif ir < 1 then
+      w = math.floor(s*ir)
+      h = s
+      t = 1
+      l = math.ceil((s-w)/2)
+      b = s
+      r = l + w - 1
+   elseif ir == 1 then
+      w = s
+      h = s
+      t = 1
+      b = s
+      l = 1
+      r = s
+   end
+   img = image.scale(img, w, h)
+   box[{ {},{t,b},{l,r} }] = img
+   return box
+end
+function MAD.pixels.ifile.isok(file)
+   local function isSupported(binary)
+      local c = string.char
+      local numbers = {
+         [c(0xff)..c(0xd8)..c(0xff)] = 'JPEG',
+         [c(0x89)..c(0x50)..c(0x4e)..c(0x47)] = 'PNG',
+      }
+      local families = {
+         JPEG = 'image',
+         PNG = 'image',
+      }
+      local type = numbers[binary:sub(1,1)] or numbers[binary:sub(1,3)] or numbers[binary:sub(1,4)]or numbers[binary:sub(1,3)..'_'..binary:sub(5,8)]
+      local family = families[type]
+      return type,family
+   end
+
+   local f = io.open(file)
+   if f then
+      local magic = f:read(8)
+      f:close()
+      if not magic or #magic < 8 then
+      return
+      end
+      return isSupported(magic)
+   end
+end
+function MAD.pixels.ifile.hsvx(ifile)
+   local command = './hsvx colors "'..ifile..'" 1'
+   local hue = sys.execute(command)
+   local scores = stringx.split(hue)
+   local tbl = {}
+   tbl.h = torch.round( tonumber( scores[1]) *100 )
+   tbl.s = torch.round( tonumber( scores[2]) *100 )
+   tbl.v = torch.round( tonumber( scores[3]) *100 )
+   tbl.x = torch.round( tonumber( scores[4]) *100 )
+   return tbl
+end
+function MAD.pixels.ifile.detect_whitePixel(ifile)
+   local isStuff
+   local img = image.load(ifile, 3, 'float' )
+   local top = img[{ {},{1,1},{1,1} }]
+   local sum = top[1]+top[2]+top[3]
+   local moyenne = sum/3
+   if moyenne[1][1] == 1 then
+      isStuff = true
+   else
+      isStuff = false
+   end
+   return isStuff
+end
+function MAD.pixels.ifile.ifile2bitmap(ifile, opt)
+   opt = opt or {}
+   local gridSize = opt.gridSize or 4
+   local nRGB = opt.nRGB or 4
+   local img = image.load(ifile, 3, 'float' )
+   img = image.scale(img,gridSize,gridSize)
+   local  div = torch.round(100/nRGB)
+   img = torch.round(img*100/div)
+   return img
+end
+function MAD.pixels.ifile.png2jpg(ifile)
+   local ofile = stringx.replace(ifile, '.png', '.jpg')
+   local command1 = 'convert "'..ifile..'" "'..ofile..'"'
+   local command2 = 'rm -f  "'..ifile..'"'
+   os.execute(command1)
+   os.execute(command2)
+end
+function MAD.pixels.ifile.img2rgba(ifile, ofile, alpha)
+   local command = 'convert "'..file..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
+end
+function MAD.pixels.ifile.bw2rgb(ifile)
+   local command1 = 'convert "'..ifile..'" -type truecolor "'..ifile..'"'
+   os.execute(command1)
+end
+function MAD.pixels.ifile.maskImage(ifile, fmask, ofile)
+   local cmd = 'magick composite -gravity center "'..fmask..'" "'..ifile..'" "'..ofile..'"'
+   os.execute(cmd)
+end
+function MAD.pixels.ifile.ratio(ifile)
+   local ratio = 'portrait'
+   local img = image.load(ifile, 3, 'float' )
+   local dims = #img
+   local h,w = dims[2],dims[3]
+   if w > h then
+      ratio = 'landscape'
+   end
+   if w == h then
+      ratio = 'square'
+   end
+   return ratio
+end
+function MAD.pixels.ifile.alpha(opt)
+   opt = opt or {}
+   local ifile = opt.ifile or error('!!ifile')
+   local ofile = opt.ofile or error('!!ofile')
+   local alpha = opt.alpha or error('!!alpha')
+   local command = 'convert "'..ifile..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
+   os.execute(command)
+end
+function MAD.pixels.ifile.scale2fill(opt)
+   opt = opt or {}
+   local ifile = opt.ifile or error('!!ifile')
+   local ofile = opt.ofile or error('!!ofile')
+   local w = opt.w or error('!!w')
+   local h = opt.h or error('!!h')
+   local cmd = 'convert "'..ifile..'" -resize '..w..'x'..h..'^ "'..ofile..'"'
+   os.execute(cmd)
+end
+function MAD.pixels.ifile.padImage(opt)
+   opt = opt or {}
+   local padding = opt.padding or 16
+
+   local img = {}
+
+   img.file = opt.ifile
+   img.map = image.load(img.file)
+   img.dims = #(img.map)
+   img.w = img.dims[3]
+   img.h = img.dims[2]
+
+   local bgd = {}
+
+   bgd.file = opt.bgd
+   bgd.map = image.load(bgd.file)
+   bgd.w = img.w + 2 * padding
+   bgd.h = img.h + 2 * padding
+   bgd.map = image.scale(bgd.map,bgd.w,bgd.h)
+
+   img.t = (bgd.h-img.h)/2
+   img.b = img.h + img.t - 1
+   img.l = (bgd.w-img.w)/2
+   img.r = img.w + img.l - 1
+
+   bgd.map[{ {},{img['t'],img['b']},{img['l'],img['r']} }] = img.map
+   return bgd.map
+end
+function MAD.pixels.ifile.scale2fill(opt)
+    opt = opt or {}
+    local ifile = opt.ifile or error('!!ifile')
+    local ofile = opt.ofile or error('!!ofile')
+    local w = opt.w or error('!!w')
+    local h = opt.h or error('!!h')
+    local cmd = 'convert "'..ifile..'" -resize '..w..'x'..h..'^ "'..ofile..'"'
+    os.execute(cmd)
+end
+function MAD.pixels.ifile.stretch2fill(opt)
+    opt = opt or {}
+    local ifile = opt.ifile or error('!!ifile')
+    local ofile = opt.ofile or error('!!ofile')
+    local w = opt.w or error('!!w')
+    local h = opt.h or error('!!h')
+    local cmd = 'convert "'..ifile..'" -resize '..w..'x'..h..' "'..ofile..'"'
+    os.execute(cmd)
+end
+
+
+MAD.pixels.img = {}
+
+function MAD.pixels.img.tint(img, colorName, factor)
+    local factor = factor or 2
+    local iw = (#img)[3]
+    local ih = (#img)[2]
+    local hue = {
+        red = {1,.27,.23},
+        black = {0,0,0},
+        white = {1,1,1},
+        gray = {.5,.5,.5},
+        green = {.196,.843,0.294},
+    }
+    local v = hue[colorName]
+    print(v)
+    local map = torch.FloatTensor(3,ih,iw)
+    print(#map)
+    map[1] = torch.uniform( v[1] , v[1] )
+    map[2] = torch.uniform( v[2] , v[2] )
+    map[3] = torch.uniform( v[3] , v[3] )
+    local omg = map + img
+    if color == 'black' then
+        omg = map + map + map + img
+        factor = 4
+    end
+    omg = omg/factor
+    return omg
+end
+function MAD.pixels.img.okRatio(img, maxRatio)
+    local okRatio = false
+    local dim, w, h = img:size()[1], img:size()[2], img:size()[3]
+    local shortEdge = math.min(w,h)
+    local longEdge = math.max(w,h)
+    local absRatio = longEdge/shortEdge
+    if absRatio < maxRatio then
+        okRatio = true
+    end
+    return okRatio
+end
+function MAD.pixels.img.okSize(img, minSize)
+    local okSize = false
+    local dim, w, h = img:size()[1], img:size()[2], img:size()[3]
+    local shortEdge = math.min(w,h)
+    if shortEdge > minSize then
+        okSize = true
+    end
+    return okSize
+end
+function MAD.pixels.img.centerRatioCrop(img, ratio)
+    local iw = img:size(3)
+    local ih = img:size(2)
+    local ir = iw / ih
+    local outputWidth, outputHeight
+    if ratio >= ir then
+        outputWidth = iw
+        outputHeight = torch.round(outputWidth / ratio)
+    else
+        outputHeight = ih
+        outputWidth = torch.round(outputHeight * ratio)
+    end
+    local top = torch.floor((ih - outputHeight)/2) + 1
+    local left = torch.floor((iw - outputWidth)/2) + 1
+    local bottom = top + outputHeight - 1
+    local right = left + outputWidth - 1
+    local omg = img[{ {},{top,bottom},{left,right} }]
+    return omg
+end
+function MAD.pixels.img.cropFromSides(img, opt)
+    opt = opt or {}
+    local crop_t = opt.t or 259
+    local crop_l = opt.l or 259
+    local crop_r = opt.r or 259
+    local crop_b = opt.b or 259
+    local dims = #img
+    local iw = dims[3]
+    local ih = dims[2]
+
+
+    local t = crop_t + 1
+    local l = crop_l + 1
+    local b = ih - crop_b --- 1
+    local r = iw - crop_r --- 1
+    omg = img[{ {},{t,b},{l,r} }]
+
+    return omg
+end
+
+
+MAD.pixels.img.dim = {}
+
+function MAD.pixels.img.dim.white(img, factor)
+    local img = img or MAD.jay.img()
+    local factor = factor or 2
+    local iw, ih = (#img)[3], (#img)[2]
+    local white = torch.FloatTensor(3, ih, iw):uniform(1,1)
+    local result = white + img
+    result = result/factor
+    return result
+end
+function MAD.pixels.img.dim.black(img, factor)
+    local img = img or MAD.jay.img()
+    local factor = factor or 2
+    local iw, ih = (#img)[3], (#img)[2]
+    local black = torch.FloatTensor(3, ih, iw):uniform(0,0)
+    local result = black + img
+    if color == 'black' then
+        factor =3
+    end
+    result = result/factor
+    return result
+end
+
+
+MAD.pixels.shuffle = {}
+
+function MAD.pixels.shuffle.global(img)
+    local channels = img:size(1)
+    local h = img:size(2)
+    local w = img:size(3)
+    local matrix = img:view(channels, w * h)
+    local perm = torch.randperm(w * h):long()
+    local pixels = matrix:index(2,perm)
+    local result = pixels:view(channels, h, w)
+    return result
+end
+function MAD.pixels.shuffle.gaussian(img, spread)
+    opt = opt or {}
+
+    img = img:clone()
+    local raw = torch.data(img)
+    local w = (#img)[3]
+    local h  = (#img)[2]
+    local channels = (#img)[1]
+    local npixels = w * h
+    -- print(spread)
+    local maxSpread = math.max( w, h  )
+    local meanMaxSpread = maxSpread
+    local spread = spread or meanMaxSpread
+    if spread == 0 then
+       return img
+    end
+    local offsets_x = torch.data( torch.Tensor(npixels):normal(0, spread) )
+    local offsets_y = torch.data( torch.Tensor(npixels):normal(0, spread) )
+    local i = 0
+
+    for y = 0,h -1 do
+        -- xlua.progress(y, h -1)
+
+        for x = 0,w-1 do
+            local dx = math.floor(0.5 + math.max(math.min(w-1,  x+offsets_x[i]), 0))
+            local dy = math.floor(0.5 + math.max(math.min(h -1, y+offsets_y[i]), 0))
+            local di = w*dy + dx
+
+            for c = 0,channels-1 do
+                local buffer = raw[ npixels*c + i ]
+                raw[ npixels*c + i ] = raw[ npixels*c + di ]
+                raw[ npixels*c + di ] = buffer
+            end
+            i = i + 1
+        end
+    end
+    collectgarbage()
+    return img
+end
+function MAD.pixels.shuffle.bin(ifile, opt)
+
+    -- local rng         = mad.list.create.range(2,15,2)
+    -- local rdmNo       = mad.list.sample_one(rng)
+    local opt         = opt or {}
+    local img         = image.load(ifile, 3, 'float' )
+    local ih          = opt.ih or 512
+    local iw          = opt.iw or 512
+    local ncol        = opt.ncol or 16
+    local nrow        = opt.nrow or 16
+    local img         = image.scale(img,ih,iw)[{{1,3}}]
+    local imgdims     = #img
+    local blockw      = imgdims[3]/ncol
+    local blockh      = imgdims[2]/nrow
+    local imgHSL      = image.rgb2hsv(img)*0.99
+    local blocks      = imgHSL:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
+    local allBlocks   = blocks:reshape( (#blocks)[1],(#blocks)[2]*(#blocks)[3],(#blocks)[4]*(#blocks)[5] )
+
+    for i = 1, (#allBlocks)[2] do
+    
+        xlua.progress(i,(#allBlocks)[2])
+        local rdmPositions = torch.randperm((#allBlocks)[3]) --Randomize Bins
+
+      for j = 1, (#allBlocks)[3] do
+
+         allBlocks[{ 1,i,j }] = allBlocks[{ 1,i,rdmPositions[j] }]
+         allBlocks[{ 2,i,j }] = allBlocks[{ 2,i,rdmPositions[j] }]
+         allBlocks[{ 3,i,j }] = allBlocks[{ 3,i,rdmPositions[j] }]
+      end
+    end
+
+    img = allBlocks:reshape((#blocks)[1],(#blocks)[2],(#blocks)[3],(#blocks)[4],(#blocks)[5])
+    print('Shuffle')
+    P2('channels', (#img)[1])
+    P2('height', (#img)[2])
+    P2('width', (#img)[3])
+
+    img = image.hsv2rgb(img:transpose(3,4):reshape(3,ih,iw))
+    print('Reorganize')
+    P2('channels', (#img)[1])
+    P2('height', (#img)[2])
+    P2('width', (#img)[3])
+
+    return img
+end
+function MAD.pixels.shuffle.cut(ifile, opt)
+
+    opt = opt or {}
+    local img       = image.load(ifile, 3, 'float' )
+    local ih        = opt.ih or 1024
+    local iw        = opt.iw or 1024
+    local img       = image.scale(img,ih,iw)[{ {1,3} }]
+    local imgSize   = #img
+    local ncol      = opt.ncol or 16
+    local nrow      = opt.nrow or 16
+    local totalBlocksNo = ncol * nrow
+    local blockw = imgSize[3] / ncol
+    local blockh = imgSize[2] / nrow
+    local blocks = img:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
+    local allBlocks = blocks:reshape((#blocks)[1],
+                                    (#blocks)[2]*(#blocks)[3],
+                                    (#blocks)[4]*(#blocks)[5])
+    -- Generate Random posiiton & Randomize Bin Posiiton
+    local rdmPositions = torch.randperm((#allBlocks)[2])
+    for i = 1, (#allBlocks)[2] do
+      xlua.progress(i,(#allBlocks)[2])
+      allBlocks[{ 1,i }] = allBlocks[{ 1,rdmPositions[i] }]
+      allBlocks[{ 2,i }] = allBlocks[{ 2,rdmPositions[i] }]
+      allBlocks[{ 3,i }] = allBlocks[{ 3,rdmPositions[i] }]
+    end
+    local img = allBlocks:reshape((#blocks)[1],
+                                 (#blocks)[2],
+                                 (#blocks)[3],
+                                 (#blocks)[4],
+                                 (#blocks)[5])
+    local img = img:transpose(3,4):reshape(3,ih,iw)
+    return img
+end
+function MAD.pixels.shuffle.TEST()
+    local f_test = MAD.pixels.assets..'jay.jpg'
+    function MAD.pixels.shuffle.global_TEST()
+        MAD.pixels.show( MAD.pixels.shuffle.global(f_test) )
+    end
+    -- MAD.pixels.shuffle.global_TEST()
+    function MAD.pixels.shuffle.gaussian_TEST()
+        MAD.pixels.show( MAD.pixels.shuffle.gaussian(f_test, {spread = 64}) )
+    end
+    -- MAD.pixels.shuffle.gaussian_TEST()
+    function MAD.pixels.shuffle.bin_TEST()
+        local ifile = fs.pussy
+        local out = MAD.pixels.shuffle.bin(f_test, {
+            ih = 512,
+            iw = 512,
+            ncol = 2,
+            nrow = 2,
+        })
+        MAD.pixels.show(out, 'pussy')
+    end
+    -- MAD.pixels.shuffle.bin_TEST()
+    function MAD.pixels.shuffle.cut_TEST()
+        local out = MAD.pixels.shuffle.cut(f_test, {
+            ih = 1024,
+            iw = 1024,
+            ncol = 16,
+            nrow = 16,
+        })
+        MAD.pixels.show(out)
+    end
+    -- MAD.pixels.shuffle.cut_TEST()
+end
+
+MAD.pixels.color = {}
+function MAD.pixels.color.rotate(opt)
+    opt = opt or {}
+    local img = opt.img
+    local dim = opt.dim
+    local shift = opt.shift or torch.uniform()
+    local i = image.rgb2hsl(img)
+    local dimidx
+    if dim == 'h' then dimidx = 1 end
+    if dim == 's' then dimidx = 2 end
+    if dim == 'l' then dimidx = 3 end
+    i[dimidx]:apply(function(x) return (x+shift)%1 end)
+    return image.hsl2rgb(i)
+end
+function MAD.pixels.color.invert(img)
+    return -img +1
+end
+function MAD.pixels.color.filter(img,opt)
+    local opt = opt or {}
+    local img = img or jay
+    local rdm_min = torch.uniform(0.1,0.5)
+    local rdm_max = torch.uniform(0.5,0.9)
+
+    local mR = opt.mR or torch.uniform(rdm_min,rdm_max) --0.4
+    local mG = opt.mG or torch.uniform(rdm_min,rdm_max) --0.3
+    local mB = opt.mB or torch.uniform(rdm_min,rdm_max) --0.2
+
+    local i3 = img:clone()
+    -- (0) normalize the image energy to be 0 mean:
+    i3:add(-i3:mean())
+    -- (1) normalize all channels to have unit standard deviation:
+    i3:div(i3:std())
+    -- (2) filter indivudal channels differently (here we give an orange
+    --     filter, to warm up the image):
+    i3[1]:mul(mR)
+    i3[2]:mul(mG)
+    i3[3]:mul(mB)
+    -- (3) soft clip the image between 0 and 1
+    i3:mul(4):tanh():add(1):div(2)
+    return i3
+end
+-- function MAD.pixels.color.bw(img)
+--     return img:mean(1)
+-- end
+
+function MAD.pixels.color.bw(im)
+    -- Image.rgb2y uses a different weight mixture
+
+    local dim, w, h = im:size()[1], im:size()[2], im:size()[3]
+    if dim ~= 3 then
+       print('<error> expected 3 channels')
+       return im
+    end
+
+    -- a cool application of tensor:select
+    local r = im:select(1, 1)
+    local g = im:select(1, 2)
+    local b = im:select(1, 3)
+
+    local z = torch.Tensor(w, h):zero()
+
+    -- z = z + 0.21r
+    z = z:add(0.21, r)
+    z = z:add(0.72, g)
+    z = z:add(0.07, b)
+
+    local map = torch.FloatTensor(3, h, w):uniform( 0,.1)
+    map[1] = z
+    map[2] = z
+    map[3] = z
+    return map
+end
+
+
+MAD.pixels.blur = {}
+
+function MAD.pixels.blur_gaussian(img,kernelsize)
+    local h           = img:size(2)
+    local w           = img:size(3)
+    local kernelsize  = kernelsize or math.min(w,h)/8
+    -- Gaussian Kernel + Transpose
+    local g1 = image.gaussian1D(kernelsize):resize(1,kernelsize):float()
+    local g2 = g1:t() --transpose(1,2)
+    -- Check Dimensiosn
+    -- print(#g1)
+    -- print(#g2)
+    -- Resize & Clone
+    local i = img
+    c = i:clone():fill(1)
+    -- print{c,g1}
+    -- Convolution
+    c = image.convolve(c, g1, 'same')
+    c = image.convolve(c, g2, 'same')
+    i = image.convolve(i, g1, 'same')
+    i = image.convolve(i, g2, 'same')
+    -- Component-wise division + retransform
+    i:cdiv(c)
+    return i
+end
+function MAD.pixels.blur.aperture(img,apertureSize)
+    apertureSize = tostring(apertureSize)
+    local aperture = image.load("assets/mad.pixels/"..'aperture_'..apertureSize..'.png',4)
+    aperture:div(aperture:sum())
+    local res = image.convolve(img,aperture[1],'same')
+    res:div(res:max())
+    return res
+end
+
+MAD.pixels.idir = {}
+
+function MAD.pixels.idir.bw2rgb(idir)
+    local files = MAD.idir.jpgs(idir)
+    for i, file in ipairs(files) do
+        xlua.progress(i,#files)
+        local img = image.load(file)
+        local dims = #img
+        if dims[1]~=3 then
+            print(file)
+            MAD.pixels.ifile.bw2rgb(file)
+        end
+    end
+end
+function MAD.pixels.idir.mu(files, S, talk)
+    local sum = torch.FloatTensor(3, S, S):uniform( 0,.001)
+    for i, file in ipairs(files) do
+        if talk == 'talk' then
+            xlua.progress(i, #files)
+        end
+      local img = image.load(file, 3, 'float' )
+      img = image.scale( img, S, S)
+      sum = sum + img
+    end
+    return sum/#files
+end
+function MAD.pixels.idir.hsvx(opt)
+    MAD.print.title("MAD.pixels.idir.hsvx()")
+    print(idir)
+    local idir = opt.idir
+    local fcsv = opt.fcsv
+    local fth = opt.fth
+
+    local files = MAD.idir.jpgs(idir 'reparse')
+    local id2hsvx = {}
+    local f = io.open(fcsv, 'w')
+    local header = 'id'..','..'h'..','..'s'..','..'v'..','..'x'
+    f:write(header, "\n")
+    for i, file in ipairs(files) do
+        xlua.progress(i,#files)
+        local hsvx = MAD.pixels.ifile.hsvx(file)
+        local id = path.basename(file)
+        id2hsvx[id] = hsvx
+        local row = id..','..hsvx.h..','..hsvx.s..','..hsvx.v..','..hsvx.x
+        f:write(row, "\n")
+    end
+    f:close()
+    torch.save(fth, id2hsvx)
+end
+function MAD.pixels.idir.bw2rgb(idir)
+    MAD.print.title("MAD.pixels.idir.bw2rgb()")
+    print(idir)
+    local files = MAD.idir.jpgs(idir, 'reparse')
+    for i, file in ipairs(files) do
+        xlua.progress(i,#files)
+        local img = image.load(file)
+        local dims = #img
+        print(file)
+        if dims[1]~=3 then
+            MAD.pixels.ifile.bw2rgb(file)
+        end
+    end
+end
+function MAD.pixels.idir.gif(idir, ofile, delay)
+    local cmd = 'cd "'..idir..'" && convert -delay '..delay..' -loop 0 *.jpg "'..ofile..'"'
+    -- print(cmd)
+    os.execute(cmd)
+end
+
+
+function MAD.pixels.mask(opt)
+    opt = opt or {}
+    local command = 'magick composite -gravity center "'..opt.fmask..'" "'..opt.file..'" "'..opt.ofile..'"'
+    os.execute(command)
+end
+function MAD.pixels.create_alpha_mask()
+    local idir_masks = "/Users/laeh/Documents/MAD/masks/100"
+    local odir_masks = "/Users/laeh/Documents/MAD/masks/1024*1024"
+
+    local masks ={}
+    for file in dir.dirtree(idir_masks) do
+        if path.isfile(file) and path.extension(file) =='.png' then
+            table.insert(masks, file)
+        end
+    end
+    local colors= {}
+    for _, file in ipairs( masks ) do
+
+        local color = path.basename(file)
+        color = stringx.replace(color, path.extension(file), '')
+        table.insert(colors, color)
+
+        print(color)
+        for i=1, 99 do
+            xlua.progress(i,99)
+            local alpha = i/100
+            local ofile =  path.join(odir_masks, color, i..'.png' )
+
+            dir.makepath(path.dirname(ofile))
+            if not path.exists(ofile) then
+                local command = 'convert "'..file..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
+                -- print( command )
+                os.execute( command )
+            end
+        end
+    end
+end
+function MAD.pixels.ifile.CropBoxFromImage(opt)
+    opt = opt or {}
+    local ifile = opt.ifile
+    local ofile = opt.ofile
+    local geometry = opt.geometry
+
+    local bw, bh, bx, by
+
+    bw = geometry['w']
+    bh = geometry['h']
+    bx = geometry['x']
+    by = geometry['y']
+
+    local img  = image.load(ImageFile)
+    local iw, ih = (#img)[3], (#img)[2]
+
+    local t,b,l,r
+
+    t = by + 1
+    b = t + bh -1
+    l = bx +1
+    r = l + bw -1
+
+    print('🀣')
+    MAD.P2('ih', i.h)
+    MAD.P2('iw', i.w)
+    print('✂')
+    MAD.P2('bw', b.w)
+    MAD.P2('bh', b.h)
+    MAD.P2('bx', b.x)
+    MAD.P2('by', b.y)
+    MAD.P2('t', t)
+    MAD.P2('b', b)
+    MAD.P2('l', l)
+    MAD.P2('r', r)
+
+    image.save(ofile, img[{ {},{b.t, b.b},{b.l,b.r} }])
+end
+function MAD.pixels.img.rgbmean(img)
+   img = image.scale(img, 16,16)
+   local sum = img[{{},{1,1},{1,1}}]
+   local n = 0
+   for x=1, 16 do
+      for y=1, 16 do
+         sum = sum + img[{{},{x,x},{y,y}}]
+         n = n + 1
+      end
+   end
+   local mean = sum/n
+   local r = mean[1][1][1]
+   local g = mean[2][1][1]
+   local b = mean[3][1][1]
+   return {r,g,b}
+end
+function MAD.pixels.img.box(img, rgb, s)
+   local box = torch.FloatTensor(3,s,s)
+
+   box[1] = rgb[1]
+   box[2] = rgb[2]
+   box[3] = rgb[3]
+
+   local iw = (#img)[3]
+   local ih = (#img)[2]
+   local ir = iw / ih
+
+   local w,h,t,b,l,r
+
+   if ir > 1 then
+      w = s
+      h = math.floor(s/ir)
+      t = math.ceil((s-h)/2)
+      b = t + h -1
+      l = 1
+      r = s
+   elseif ir < 1 then
+      w = math.floor(s*ir)
+      h = s
+      t = 1
+      l = math.ceil((s-w)/2)
+      b = s
+      r = l + w - 1
+   elseif ir == 1 then
+      w = s
+      h = s
+      t = 1
+      b = s
+      l = 1
+      r = s
+   end
+   img = image.scale(img, w, h)
+   box[{ {},{t,b},{l,r} }] = img
+   return box
+end
+
+
+local ifile = MAD.pixels.file_rick
+
+function MAD.pixels.img.shortEdgeScale(img, shortedge)
+   local shortEdge = 332
+   local dims = #img
+   local h,w = dims[2],dims[3]
+   local r = w/h
+
+   local ow,oh
+   if r > 1 then
+      -- print("r>1")
+        oh = shortEdge
+        ow = torch.round(oh * r)
+   end
+   if r < 1 then
+      -- print("r<1")
+      ow = shortEdge
+      oh = torch.round(ow / r)
+   end
+   if r ==1 then
+      ow = shortEdge
+      oh = shortEdge
+   end
+   local res = image.scale(img, ow, oh)
+   return res
+end
 return MAD
 
 
