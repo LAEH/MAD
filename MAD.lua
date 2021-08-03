@@ -1,4 +1,3 @@
-#!/usr/bin/env th
 local col = require 'async.repl'.colorize
 local image = require 'image'
 local home = os.getenv('HOME')
