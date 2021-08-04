@@ -1846,6 +1846,513 @@ function MAD.pixels.img.shortEdgeScale(img, shortedge)
    local res = image.scale(img, ow, oh)
    return res
 end
+
+--[[
+♥♥♥♥♥♥♥♥♥♥♥
+♥♥♥♥♥♥♥♥♥♥♥
+♥♥♥♥♥♥♥♥♥♥♥
+♥♥♥♥♥♥♥♥♥♥♥
+]]
+    
+MAD.mosaics = {}
+function MAD.mosaics.files2map(opt)
+    opt = opt or {}
+
+    local files = opt.files or error('!!files')
+    local mr    = opt.mr or 1
+    local iw    = opt.iw or 64
+    local ih    = opt.ih or 64
+    local quiet = opt.quiet or true
+
+    local ir    = iw/ih
+    local nfiles = #files
+    local n =  nfiles
+    local ncol = math.floor(math.sqrt(n * mr / ir))
+    local nrow = math.floor(n/ncol)
+    local total = ncol*nrow
+    local mh = nrow * ih
+    local mw = ncol * iw
+    local map = torch.FloatTensor(3, mh, mw):uniform( 0,1)
+
+    if not quiet then
+        MAD.print.two('n', n)
+        MAD.print.two('mr', mr)
+        MAD.print.two('iw', iw)
+        MAD.print.two('ih', ih)
+        MAD.print.two('ir', ir)
+    end
+
+    local c = 1
+    for i = 1,nrow do
+        for j = 1,ncol do
+            if not quiet then
+                local pretty_total = MAD.number2comas(total)
+                local pretty_c = MAD.number2comas(c)
+                io.write(pretty_total.." "..col.Green(pretty_c), '\r') io.flush()
+            end
+            local file = files[c]
+            local ok,img = pcall(image.load, file, {
+                type = 'float',
+                channels = 3,
+            })
+                local dims = #img
+            if ok and img  and dims[1] == 3 then
+                img = image.scale( MADpixels.img.centerRatioCrop(img, ir), iw, ih)
+                local t = (i-1) * ih + 1
+                local l = (j-1) * iw + 1
+                local b = t + ih - 1
+                local r = l + iw - 1
+                map[{ {},{t,b},{l,r} }] = img
+                c = c + 1
+            end
+        end
+    end
+    return map
+end
+function MAD.mosaics.files2map_rdmboost(opt)
+    opt = opt or {}
+    local files = opt.files or error('!!files')
+    local mr = opt.mr
+    local iw = opt.iw
+    local ih = opt.ih
+    local ir = iw/ih
+
+    local nfiles = #files
+    local n =  nfiles
+    local ncol = math.floor(math.sqrt(n * mr / ir))
+    local nrow = math.floor(n/ncol)
+    local mh = nrow * ih
+    local mw = ncol * iw
+    local map = torch.FloatTensor(3, mh, mw):uniform( 0,.1)
+
+    MAD.print.two('n', n)
+    MAD.print.two('mr', mr)
+    MAD.print.two('iw', iw)
+    MAD.print.two('ih', ih)
+    MAD.print.two('ir', ir)
+    MAD.print.two('idir', idir)
+
+    local c = 1
+    for i = 1,nrow do
+        for j = 1,ncol do
+            xlua.progress(c,n)
+            local file = files[c]
+            -- print(file)
+            local img = MADpixels.color.filter(file)
+            img = image.scale( MAD.img.crop(img, ir), iw, ih)
+            local t = (i-1) * ih + 1
+            local l = (j-1) * iw + 1
+            local b = t + ih - 1
+            local r = l + iw - 1
+            map[{ {},{t,b},{l,r} }] = img
+            c = c + 1
+        end
+    end
+    return map
+end
+function MAD.mosaics.files2mapDetails(opt)
+    opt = opt or {}
+    local files = opt.files or error('!!files')
+    local quiet = opt.quiet or true
+    local iw = opt.iw
+    local ih = opt.ih
+    local ncol = opt.ncol
+    local nrow = opt.nrow
+
+    local ir = iw/ih
+    local nfiles = #files
+    local n =  nfiles
+    local mh = nrow * ih
+    local mw = ncol * iw
+    local map = torch.FloatTensor(3, mh, mw):uniform( 0,.1)
+
+    if not quiet then
+        MAD.print.two('n', n)
+        MAD.print.two('iw', iw)
+        MAD.print.two('ncol', ncol)
+        MAD.print.two('ih', ih)
+        MAD.print.two('nrow', nrow)
+    end
+    local c = 1
+    for i = 1,nrow do
+        for j = 1,ncol do
+            if not quiet then
+                xlua.progress(c,n)
+            end
+            local file = files[c]
+            local ok,img = pcall(image.load, file, {
+                type = 'float',
+                channels = 3,
+            })
+            local dims = #img
+            if dims[1] == 3 then
+                if ok and img then
+                    img = image.scale( MADpixels.img.centerRatioCrop(img, ir), iw, ih)
+                    local t = (i-1) * ih + 1
+                    local l = (j-1) * iw + 1
+                    local b = t + ih - 1
+                    local r = l + iw - 1
+                    map[{ {},{t,b},{l,r} }] = img
+                    c = c + 1
+                end
+            end
+        end
+    end
+    return map
+end
+function MAD.mosaics.idir(idir, ofile)
+    -- local idir= "/Volumes/1tb/xx-960*960"
+    local files = MAD.idir.jpgs(idir)
+    files = MAD.list.permute(files)
+    local n = #files
+    -- files = MAD.list.sample_n(files, n)
+    -- local mr = 1920/1080
+    -- local iw = 8
+    -- local ih = 8
+    local mosaic = MAD.mosaics.files2map({
+            files = files,
+            mr = 1,
+            iw = 64,
+            ih= 64,
+        })
+    image.save(ofile, mosaic)
+end
+function MAD.mosaics.leafs()
+    local idir = "/Volumes/1tb/ogai/taxonomy"
+    local fleafs = idir..'-leafs.th'
+    local mr = 1
+    local min = 100
+    local odir = idir..'-mosaics'
+    dir.makepath(odir)
+    -- local leafs = MAD.idir.leafs(idir)
+    -- torch.save(fleafs, leafs)
+    local leafs = torch.load(fleafs)
+    leafs = MAD.list.permute(leafs)
+    for i, leaf in ipairs(leafs) do
+        local dirname = path.dirname(leaf)
+        local odir_mosaic = stringx.replace(dirname, idir, odir)
+        dir.makepath(odir_mosaic)
+        local name = path.basename(leaf)..'.jpg'
+        local ofile = path.join(odir_mosaic, name)
+        if not path.exists(ofile) then
+            local files = MAD.idir.jpgs(leaf)
+            local n = #files
+            if n > min then
+                local iw = 64
+                local ih = 64
+                local mosaic = MAD.mosaics.files2map({
+                    files = files,
+                    mr = mr,
+                    iw = iw,
+                    ih = ih,
+                })
+                image.save(ofile, mosaic)
+            else
+                print(leaf)
+            end
+        end
+    end
+end
+function MAD.mosaics.waldo()
+    local ncol = 80    
+    local nrow = 64
+    local n = ncol*nrow
+    local _waldos = MAD.idir.jpgs("//Users/laeh/Documents/ohgod/design/waldo/_waldo")
+    local waldo = "/Users/laeh/Documents/ohgod/design/waldo/waldo/waldo_1.jpg"
+    local files = {}
+    for i=1, n-1 do 
+        table.insert(files, MAD.list.sample_one(_waldos))
+    end
+    table.insert(files, waldo)
+    files = MAD.list.permute(files)
+    local map = MAD.mosaics.files2mapDetails({
+        files = files,
+        iw = 110,
+        ncol = ncol,
+        ih = 110,
+        nrow = nrow,    
+    })
+    local odir = "/Users/laeh/Google Drive/Google Sync Anna-LA/InstaPage-Assets/My Locker/Waldo"
+    local waldo_name = path.basename(waldo)
+    local ofile = path.join(odir,MAD.rdmid(1)..'_'..ncol..'*'..nrow..'_'..waldo_name )
+    print(ofile)
+    image.save(ofile, map)
+end
+function MAD.mosaics.idirByRatio(idir)
+    local idir = idir or "/Users/laeh/Pictures/assets/xx-web-best-originals/playboy"
+    local files = _.idir.jpgs(idir)
+    local byRatio = {
+        ['Landscape'] = {},
+        ['Portrait'] = {},
+        ['Square'] = {},
+    }
+    for i, file in ipairs(files) do
+        xlua.progress(i, #files)
+        table.insert(byRatio[ifile2ratio(file)], file)
+    end
+
+    print( #byRatio['Landscape'])
+    print( #byRatio['Portrait'])
+    print( #byRatio['Square'])
+
+    image.save(idir..'-'.._.rdmid()..'.jpg', MAD.mosaics.files2map({
+        files = byRatio['Portrait'],
+        mr = 0.4,
+        iw = 80,
+        ih = 200,
+    }))
+
+    image.save(idir..'-'.._.rdmid()..'.jpg', MAD.mosaics.files2map({
+        files = byRatio['Portrait'],
+        mr = 3,
+        iw = 80,
+        ih = 200,
+    }))
+end
+
+MAD.mosaics.m2 = {}
+function MAD.mosaics.m2.make(opt)
+   opt = opt or {}
+   local files = {}
+   if opt.idir then
+      files = mad.idir.getfiles(idir)
+      local shuffle = true
+      if shuffle then
+         print("shuffling...")
+         mad.list.permute(files)
+      end
+   end
+
+   if opt.ifile then
+      for i=1, 1000 do
+         table.insert(files, opt.ifile)
+      end
+   end
+
+   local nFiles = #files
+
+   -- Geometry
+   local h_mosaic = opt.h_mosaic or  4096
+   local w_mosaic = opt.w_mosaic or  4096
+   local nCol = opt.nCol or  16
+   local tile_min_ratio = opt.tile_min_ratio or  .16
+   local tile_max_ratio = opt.tile_max_ratio or  .84
+   local w_column = opt.w_column or  w_mosaic/nCol
+   local minHeight = opt.minHeight or  w_column
+   local nTiles =  0
+
+
+   mad.print.two('idir',tostring(idir))
+   mad.print.two('h_mosaic',tostring(h_mosaic))
+   mad.print.two('w_mosaic',tostring(w_mosaic))
+   mad.print.two('nCol',tostring(nCol))
+   mad.print.two('tile_min_ratio',tostring(tile_min_ratio))
+   mad.print.two('tile_max_ratio',tostring(tile_max_ratio))
+   mad.print.two('nTiles',tostring(nTiles))
+   mad.print.two('w_column',tostring(w_column))
+   mad.print.two('minHeight',tostring(minHeight))
+   mad.print.two('nFiles',tostring(nFiles))
+
+   local geometry = {}
+   for i=1, nCol do
+      local columnTiles = {}
+      local usedHeight = 0
+      local leftHeight = h_mosaic
+      local nRow = 0
+      while usedHeight < h_mosaic - minHeight do
+         local tile = {}
+         tile['width'] = w_column
+         tile['ratio'] = torch.uniform(tile_min_ratio, tile_max_ratio)
+         tile['left'] = (i-1) * w_column + 1
+         tile['right'] = tile.left + w_column - 1
+         tile['top'] = usedHeight + 1
+         if leftHeight < minHeight then
+            tile['height'] = h_mosaic - usedHeight
+         else
+            tile['height']  = math.floor(tile['width']/tile['ratio'])
+         end
+         tile['bottom'] = usedHeight + tile['height']
+         usedHeight = usedHeight + tile['height']
+         leftHeight = h_mosaic - usedHeight
+         table.insert(columnTiles, tile)
+         nRow = nRow + 1
+         nTiles = nTiles + 1
+      end
+      table.insert(geometry, columnTiles)
+   end
+
+   -- if not enough files in directory given geometry design
+   if nTiles > nFiles then
+      local diff = nTiles - nFiles
+      for i=1, diff + 1 do
+         table.insert(files, files[i])
+      end
+      files = mad.list.permute(files)
+   end
+
+   -- draw mosaic
+   local clock = 1
+   local map = torch.FloatTensor(3, h_mosaic, w_mosaic):uniform( 0,.1)
+   for i, column in ipairs(geometry) do
+      for j, tile in ipairs(column) do
+         clock = clock + 1
+         xlua.progress(clock, nTiles)
+
+         local tile = geometry[i][j]
+         local t = tile['top']
+         local l = tile['left']
+         local b = tile['bottom']
+         local r = tile['right']
+         if j == #column then
+            b = h_mosaic
+         end
+         local ifile = files[clock]
+         local img = image.load(ifile)
+         img = image.scale( MADpixels.img.centerRatioCrop(img, tile['ratio']), tile['width'], b-t+1)
+         local shift = torch.uniform()
+         -- local shift = .9
+
+         -- Distortions
+         -- img = MADpixels.color.rotate(img, shift)
+         img = MADpixels.color.filter(img)
+         local draw = mad.list.permute({true,false})[1]
+         if draw then
+            img = MADpixels.color.bw3channels(img)
+         end
+
+         -- draw
+         map[{ {},{t,b},{l,r} }] = img
+
+      end
+   end
+   return map
+end
+function MAD.mosaics.m2.onBackground(map, ofile)
+   local bgd = image.load('og003.jpg')
+   t = 1
+   b = h_mosaic
+   l = h_mosaic - w_mosaic + 1
+   r = h_mosaic
+   bgd[{ {},{t,b},{l,r} }] = map
+   image.save(ofile, bgd)
+end
+function MAD.mosaics.m2.fromDirectoriesList(idir)
+   local idirs = {
+      "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/1/1. ok.380to760",
+      "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.JustBoobs",
+      "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.JustPussy",
+      "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.Ass",
+   }
+   local name = path.basename(idir)
+   local ofile = "/Users/laeh/Pictures/TMP/m2-"..name..'-'..mad.uid(2)..'.jpg'
+   local img = m2_make({
+      idir = idir,
+      h_mosaic =  h_mosaic,
+      w_mosaic =  w_mosaic,
+      nCol =  16,
+      tile_min_ratio = .16,
+      tile_max_ratio = .84,
+   })
+
+   local map = image.load('/Users/laeh/Documents/ilovelua/mad/PS002-bgd.jpg')
+   t = 1
+   b = h_mosaic
+   l = h_mosaic - w_mosaic + 1
+   r = h_mosaic
+
+   map[{ {},{t,b},{l,r} }] = img
+   image.save(ofile, map)
+   -- os.execute('open "'..ofile..'"')
+end
+function MAD.mosaics.m2.fromImagesList()
+   local ifiles = {
+      "/Users/laeh/Desktop/emily_ratajkowski1.jpg",
+      "/Users/laeh/Desktop/emily_ratajkowski14.jpg",
+      "/Users/laeh/Documents/ilovelua/mad/jay.jpg",
+      "/Users/laeh/Documents/ilovelua/mad/rick.jpg",
+   }
+   for _, ifile in ipairs(ifiles) do
+      for i=1, 10 do
+         local name = path.basename(ifile)
+         local ofile = "/Users/laeh/Pictures/TMP/m2-"..name..'-'..mad.uid(2)..'.jpg'
+         local img = MAD.mosaics.m2.make({
+            ifile = ifile,
+            h_mosaic =  h_mosaic,
+            w_mosaic =  w_mosaic,
+            nCol =  16,
+            tile_min_ratio = .16,
+            tile_max_ratio = .84,
+         })
+         local map = image.load('/Users/laeh/Documents/ilovelua/mad/PS002-bgd.jpg')
+         t = 1
+         b = h_mosaic
+         l = h_mosaic - w_mosaic + 1
+         r = h_mosaic
+
+         map[{ {},{t,b},{l,r} }] = img
+         -- pritn(ofile)
+         image.save(ofile, map)
+      end
+   end
+end
+
+MAD.mosaics.geometries = {
+    ['square_square'] = {
+        files = files,
+        mr = 1,
+        iw = 32,
+        ih = 32,
+    },
+    ['landscape_square'] = {
+        files = files,
+        mr = 2,
+        iw = 32,
+        ih = 32,
+    },
+    ['portrait_square'] = {
+        files = files,
+        mr = 1,
+        iw = 32,
+        ih = 32,
+    },
+    ['square_portrait'] = {
+        files = files,
+        mr = .5,
+        iw = 16,
+        ih = 32,
+    },
+    ['landscape_portrait'] = {
+        files = files,
+        mr = .5,
+        iw = 16,
+        ih = 32,
+    },
+    ['portrait_portrait'] = {
+        files = files,
+        mr = .5,
+        iw = 16,
+        ih = 32,
+    },
+    ['square_landscape'] = {
+        files = files,
+        mr = 2,
+        iw = 16,
+        ih = 32,
+    },
+    ['landscape_landscape'] = {
+        files = files,
+        mr = 2,
+        iw = 16,
+        ih = 32,
+    },
+    ['portrait_landscape'] = {
+        files = files,
+        mr = 2,
+        iw = 16,
+        ih = 32,
+    }
+}
+
 return MAD
 
 
