@@ -876,7 +876,7 @@ function MAD.idir.indexes(idir, name)
     torch.save(f_id2path, id2path)
     torch.save(f_files, files)
     MAD.csv.save(f_idfile, idfile)
-end
+end]
 function MAD.idir.d1scounts(d0)
     local counts = {}
     local total = 0
@@ -1853,7 +1853,7 @@ end
 ♥♥♥♥♥♥♥♥♥♥♥
 ♥♥♥♥♥♥♥♥♥♥♥
 ]]
-    
+
 MAD.mosaics = {}
 function MAD.mosaics.files2map(opt)
     opt = opt or {}
@@ -1897,7 +1897,7 @@ function MAD.mosaics.files2map(opt)
             })
                 local dims = #img
             if ok and img  and dims[1] == 3 then
-                img = image.scale( MADpixels.img.centerRatioCrop(img, ir), iw, ih)
+                img = image.scale( MAD.pixels.img.centerRatioCrop(img, ir), iw, ih)
                 local t = (i-1) * ih + 1
                 local l = (j-1) * iw + 1
                 local b = t + ih - 1
@@ -1938,7 +1938,7 @@ function MAD.mosaics.files2map_rdmboost(opt)
             xlua.progress(c,n)
             local file = files[c]
             -- print(file)
-            local img = MADpixels.color.filter(file)
+            local img = MAD.pixels.color.filter(file)
             img = image.scale( MAD.img.crop(img, ir), iw, ih)
             local t = (i-1) * ih + 1
             local l = (j-1) * iw + 1
@@ -1987,7 +1987,7 @@ function MAD.mosaics.files2mapDetails(opt)
             local dims = #img
             if dims[1] == 3 then
                 if ok and img then
-                    img = image.scale( MADpixels.img.centerRatioCrop(img, ir), iw, ih)
+                    img = image.scale( MAD.pixels.img.centerRatioCrop(img, ir), iw, ih)
                     local t = (i-1) * ih + 1
                     local l = (j-1) * iw + 1
                     local b = t + ih - 1
@@ -2208,16 +2208,16 @@ function MAD.mosaics.m2.make(opt)
          end
          local ifile = files[clock]
          local img = image.load(ifile)
-         img = image.scale( MADpixels.img.centerRatioCrop(img, tile['ratio']), tile['width'], b-t+1)
+         img = image.scale( MAD.pixels.img.centerRatioCrop(img, tile['ratio']), tile['width'], b-t+1)
          local shift = torch.uniform()
          -- local shift = .9
 
          -- Distortions
-         -- img = MADpixels.color.rotate(img, shift)
-         img = MADpixels.color.filter(img)
+         -- img = MAD.pixels.color.rotate(img, shift)
+         img = MAD.pixels.color.filter(img)
          local draw = mad.list.permute({true,false})[1]
          if draw then
-            img = MADpixels.color.bw3channels(img)
+            img = MAD.pixels.color.bw3channels(img)
          end
 
          -- draw
