@@ -1185,7 +1185,7 @@ function MAD.pixels.ifile.png2jpg(ifile)
    os.execute(command1)
    os.execute(command2)
 end
-function MAD.pixels.ifile.img2rgba(ifile, ofile, alpha)
+function MAD.pixels.ifile.rgb2rgba(ifile, ofile, alpha)
    local command = 'convert "'..file..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
 end
 function MAD.pixels.ifile.bw2rgb(ifile)
@@ -1271,6 +1271,58 @@ function MAD.pixels.ifile.stretch2fill(opt)
     local h = opt.h or error('!!h')
     local cmd = 'convert "'..ifile..'" -resize '..w..'x'..h..' "'..ofile..'"'
     os.execute(cmd)
+end
+function MAD.pixels.ifile.mask(opt)
+    opt = opt or {}
+    local command = 'magick composite -gravity center "'..opt.fmask..'" "'..opt.file..'" "'..opt.ofile..'"'
+    os.execute(command)
+end
+function MAD.pixels.ifile.CropBox(opt)
+    opt = opt or {}
+    local ifile = opt.ifile
+    local ofile = opt.ofile
+    local geometry = opt.geometry
+
+    local bw, bh, bx, by
+
+    bw = geometry['w']
+    bh = geometry['h']
+    bx = geometry['x']
+    by = geometry['y']
+
+    local img  = image.load(ImageFile)
+    local iw, ih = (#img)[3], (#img)[2]
+
+    local t,b,l,r
+
+    t = by + 1
+    b = t + bh -1
+    l = bx +1
+    r = l + bw -1
+
+    print('🀣')
+    MAD.P2('ih', i.h)
+    MAD.P2('iw', i.w)
+    print('✂')
+    MAD.P2('bw', b.w)
+    MAD.P2('bh', b.h)
+    MAD.P2('bx', b.x)
+    MAD.P2('by', b.y)
+    MAD.P2('t', t)
+    MAD.P2('b', b)
+    MAD.P2('l', l)
+    MAD.P2('r', r)
+
+    image.save(ofile, img[{ {},{b.t, b.b},{b.l,b.r} }])
+end
+function MAD.pixels.ifile.toRGBA(opt)
+    opt = opt or {}
+    local ifile = opt.ifile
+    local ofile = opt.ofile
+    local alpha = opt.alpha
+    local command = 'convert "'..file..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
+    -- print( command )
+    os.execute( command )
 end
 
 
@@ -1360,36 +1412,25 @@ function MAD.pixels.img.cropFromSides(img, opt)
 
     return omg
 end
+function MAD.pixels.img.xHSL(opt)
+    opt = opt or {}
+    local img = opt.img
+    local xH = opt.xH or 1
+    local xS = opt.xS or 1
+    local xL = opt.xL or 1
 
+    local imgHSL = image.rgb2hsv(img)*0.99
+    imgHSL[1] = imgHSL[1] * xH
+    imgHSL[2] = imgHSL[2] * xS
+    imgHSL[3] = imgHSL[3] * xL
 
-MAD.pixels.img.dim = {}
-
-function MAD.pixels.img.dim.white(img, factor)
-    local img = img
-    local factor = factor or 2
-    local iw, ih = (#img)[3], (#img)[2]
-    local white = torch.FloatTensor(3, ih, iw):uniform(1,1)
-    local result = white + img
-    result = result/factor
-    return result
-end
-function MAD.pixels.img.dim.black(img, factor)
-    local img = img
-    local factor = factor or 2
-    local iw, ih = (#img)[3], (#img)[2]
-    local black = torch.FloatTensor(3, ih, iw):uniform(0,0)
-    local result = black + img
-    if color == 'black' then
-        factor =3
-    end
-    result = result/factor
-    return result
+    return image.hsv2rgb(imgHSL)
 end
 
 
-MAD.pixels.shuffle = {}
+MAD.pixels.img.shuffle = {}
 
-function MAD.pixels.shuffle.global(img)
+function MAD.pixels.img.shuffle.global(img)
     local channels = img:size(1)
     local h = img:size(2)
     local w = img:size(3)
@@ -1399,7 +1440,7 @@ function MAD.pixels.shuffle.global(img)
     local result = pixels:view(channels, h, w)
     return result
 end
-function MAD.pixels.shuffle.gaussian(img, spread)
+function MAD.pixels.img.shuffle.gaussian(img, spread)
     opt = opt or {}
 
     img = img:clone()
@@ -1438,7 +1479,7 @@ function MAD.pixels.shuffle.gaussian(img, spread)
     collectgarbage()
     return img
 end
-function MAD.pixels.shuffle.bin(ifile, opt)
+function MAD.pixels.img.shuffle.bin(ifile, opt)
 
     -- local rng         = mad.list.create.range(2,15,2)
     -- local rdmNo       = mad.list.sample_one(rng)
@@ -1483,7 +1524,7 @@ function MAD.pixels.shuffle.bin(ifile, opt)
 
     return img
 end
-function MAD.pixels.shuffle.cut(ifile, opt)
+function MAD.pixels.img.shuffle.cut(ifile, opt)
 
     opt = opt or {}
     local img       = image.load(ifile, 3, 'float' )
@@ -1696,81 +1737,7 @@ function MAD.pixels.idir.gif(idir, ofile, delay)
 end
 
 
-function MAD.pixels.mask(opt)
-    opt = opt or {}
-    local command = 'magick composite -gravity center "'..opt.fmask..'" "'..opt.file..'" "'..opt.ofile..'"'
-    os.execute(command)
-end
-function MAD.pixels.create_alpha_mask()
-    local idir_masks = "/Users/laeh/Documents/MAD/masks/100"
-    local odir_masks = "/Users/laeh/Documents/MAD/masks/1024*1024"
 
-    local masks ={}
-    for file in dir.dirtree(idir_masks) do
-        if path.isfile(file) and path.extension(file) =='.png' then
-            table.insert(masks, file)
-        end
-    end
-    local colors= {}
-    for _, file in ipairs( masks ) do
-
-        local color = path.basename(file)
-        color = stringx.replace(color, path.extension(file), '')
-        table.insert(colors, color)
-
-        print(color)
-        for i=1, 99 do
-            xlua.progress(i,99)
-            local alpha = i/100
-            local ofile =  path.join(odir_masks, color, i..'.png' )
-
-            dir.makepath(path.dirname(ofile))
-            if not path.exists(ofile) then
-                local command = 'convert "'..file..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
-                -- print( command )
-                os.execute( command )
-            end
-        end
-    end
-end
-function MAD.pixels.ifile.CropBoxFromImage(opt)
-    opt = opt or {}
-    local ifile = opt.ifile
-    local ofile = opt.ofile
-    local geometry = opt.geometry
-
-    local bw, bh, bx, by
-
-    bw = geometry['w']
-    bh = geometry['h']
-    bx = geometry['x']
-    by = geometry['y']
-
-    local img  = image.load(ImageFile)
-    local iw, ih = (#img)[3], (#img)[2]
-
-    local t,b,l,r
-
-    t = by + 1
-    b = t + bh -1
-    l = bx +1
-    r = l + bw -1
-
-    print('🀣')
-    MAD.P2('ih', i.h)
-    MAD.P2('iw', i.w)
-    print('✂')
-    MAD.P2('bw', b.w)
-    MAD.P2('bh', b.h)
-    MAD.P2('bx', b.x)
-    MAD.P2('by', b.y)
-    MAD.P2('t', t)
-    MAD.P2('b', b)
-    MAD.P2('l', l)
-    MAD.P2('r', r)
-
-    image.save(ofile, img[{ {},{b.t, b.b},{b.l,b.r} }])
-end
 function MAD.pixels.img.rgbmean(img)
    img = image.scale(img, 16,16)
    local sum = img[{{},{1,1},{1,1}}]
@@ -1850,13 +1817,6 @@ function MAD.pixels.img.shortEdgeScale(img, shortedge)
    local res = image.scale(img, ow, oh)
    return res
 end
-
---[[
-♥♥♥♥♥♥♥♥♥♥♥
-♥♥♥♥♥♥♥♥♥♥♥
-♥♥♥♥♥♥♥♥♥♥♥
-♥♥♥♥♥♥♥♥♥♥♥
-]]
 
 MAD.mosaics = {}
 function MAD.mosaics.files2map(opt)
