@@ -2,6 +2,10 @@ local col = require 'async.repl'.colorize
 local image = require 'image'
 local home = os.getenv('HOME')
 
+--[[
+luarocks install https://raw.githubusercontent.com/LAEH/MAD/master/mad-scm-1.rockspec
+
+]]
 -- print(home)
 
 
@@ -876,7 +880,7 @@ function MAD.idir.indexes(idir, name)
     torch.save(f_id2path, id2path)
     torch.save(f_files, files)
     MAD.csv.save(f_idfile, idfile)
-end]
+end
 function MAD.idir.d1scounts(d0)
     local counts = {}
     local total = 0
