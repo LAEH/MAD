@@ -699,7 +699,7 @@ function MAD.idir.jpgsleafs(idir, quiet)
     return leafs
 end
 function MAD.idir.d1s(d0)
-   MAD.print.function_name('MAD.idir.d1(d0)')
+   -- MAD.print.function_name('MAD.idir.d1(d0)')
    return dir.getdirectories(d0)
 end
 function MAD.idir.d2s(d0)
@@ -938,7 +938,7 @@ function MAD.img.load(ifile, kind)
     return img
 end
 function MAD.img.show(img)
-    local odir = path.join(os.getenv('HOME'),'TMP_show')
+    local odir = path.join(os.getenv('HOME'),'_show')
     local ofile = path.join(odir, MAD.uid(1)..'.jpg')
     MAD.parent(ofile)
     image.save(ofile, img)
@@ -1889,11 +1889,14 @@ function MAD.mosaics.files2map(opt)
     local c = 1
     for i = 1,nrow do
         for j = 1,ncol do
-            if not quiet then
-                local pretty_total = MAD.number2comas(total)
+            -- if not quiet then
+            --     local pretty_total = MAD.number2comas(total)
+            --     local pretty_c = MAD.number2comas(c)
+            --     io.write(pretty_total.." "..col.Green(pretty_c), '\r') io.flush()
+            -- end
+            local pretty_total = MAD.number2comas(total)
                 local pretty_c = MAD.number2comas(c)
                 io.write(pretty_total.." "..col.Green(pretty_c), '\r') io.flush()
-            end
             local file = files[c]
             local ok,img = pcall(image.load, file, {
                 type = 'float',
