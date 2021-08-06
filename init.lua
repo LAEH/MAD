@@ -1802,8 +1802,8 @@ end
 
 function MAD.pixels.img.shortEdgeScale(img, opt)
     opt = opt or {}
-    local shortedge = opt.shortedge
-    
+
+
    local dims = #img
    local h,w = dims[2],dims[3]
    local r = w/h
@@ -1811,17 +1811,17 @@ function MAD.pixels.img.shortEdgeScale(img, opt)
    local ow,oh
    if r > 1 then
       -- print("r>1")
-        oh = shortEdge
+        oh = opt.shortedge
         ow = torch.round(oh * r)
    end
    if r < 1 then
       -- print("r<1")
-      ow = shortEdge
+      ow = opt.shortedge
       oh = torch.round(ow / r)
    end
    if r ==1 then
-      ow = shortEdge
-      oh = shortEdge
+      ow = opt.shortedge
+      oh = opt.shortedge
    end
    local res = image.scale(img, ow, oh)
    return res
