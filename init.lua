@@ -1763,7 +1763,7 @@ end
 function MAD.pixels.img.box(img, opt)
     opt = opt or {}
     local rgb = opt.rgb
-    local size = opt.size
+    local s = opt.size
    local box = torch.FloatTensor(3,s,s)
 
    box[1] = rgb[1]
