@@ -1800,7 +1800,6 @@ function MAD.pixels.img.box(img, rgb, s)
    return box
 end
 function MAD.pixels.img.shortEdgeScale(img, shortedge)
-   local shortEdge = 332
    local dims = #img
    local h,w = dims[2],dims[3]
    local r = w/h
