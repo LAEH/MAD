@@ -4,7 +4,13 @@ local home = os.getenv('HOME')
 
 --[[
 luarocks install https://raw.githubusercontent.com/LAEH/MAD/master/mad-scm-1.rockspec
-
+RED_ixboae.jpg
+RED_ppusxc.jpg
+RED_ooutuf.jpg
+RED_7osaj9
+RED_1mvzub.jpg
+RED_qdtrkj.jpg
+RED_1mvzub.jpg
 ]]
 -- print(home)
 
@@ -1920,7 +1926,7 @@ end
 function MAD.mosaics.files2mapDetails(opt)
     opt = opt or {}
     local files = opt.files or error('!!files')
-    local quiet = opt.quiet or true
+    local quiet = opt.quiet or 'not quiet'
     local iw = opt.iw
     local ih = opt.ih
     local ncol = opt.ncol
@@ -1933,7 +1939,7 @@ function MAD.mosaics.files2mapDetails(opt)
     local mw = ncol * iw
     local map = torch.FloatTensor(3, mh, mw):uniform( 0,.1)
 
-    if not quiet then
+    if not quiet == 'quiet' then
         MAD.print.two('n', n)
         MAD.print.two('iw', iw)
         MAD.print.two('ncol', ncol)
@@ -1943,7 +1949,7 @@ function MAD.mosaics.files2mapDetails(opt)
     local c = 1
     for i = 1,nrow do
         for j = 1,ncol do
-            if not quiet then
+            if not quiet == 'quiet' then
                 xlua.progress(c,n)
             end
             local file = files[c]
