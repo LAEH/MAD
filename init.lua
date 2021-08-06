@@ -1803,6 +1803,7 @@ end
 function MAD.pixels.img.shortEdgeScale(img, opt)
     opt = opt or {}
     local shortedge = opt.shortedge
+    
    local dims = #img
    local h,w = dims[2],dims[3]
    local r = w/h
