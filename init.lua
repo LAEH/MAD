@@ -1760,7 +1760,10 @@ function MAD.pixels.img.rgbmean(img)
    local b = mean[3][1][1]
    return {r,g,b}
 end
-function MAD.pixels.img.box(img, rgb, s)
+function MAD.pixels.img.box(img, opt)
+    opt = opt or {}
+    local rgb = opt.rgb
+    local size = opt.size
    local box = torch.FloatTensor(3,s,s)
 
    box[1] = rgb[1]
