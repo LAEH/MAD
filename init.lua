@@ -1949,9 +1949,9 @@ function MAD.mosaics.files2mapDetails(opt)
     local c = 1
     for i = 1,nrow do
         for j = 1,ncol do
-            if not quiet == 'quiet' then
+            -- if not quiet == 'quiet' then
                 xlua.progress(c,n)
-            end
+            -- end
             local file = files[c]
             local ok,img = pcall(image.load, file, {
                 type = 'float',
