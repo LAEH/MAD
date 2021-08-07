@@ -1788,9 +1788,11 @@ function MAD.pixels.img.box(img, opt)
    local iw = (#img)[3]
    local ih = (#img)[2]
    local ir = iw / ih
-
+print('after')
+print(iw)
+print(ih)
+print(ir)
    local w,h,t,b,l,r
-   print('after')
    if ir > 1 then
       w = s
       h = math.floor(s/ir)
