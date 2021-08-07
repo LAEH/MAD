@@ -1843,8 +1843,13 @@ function MAD.pixels.img.shortEdgeScale(img, opt)
    return res
 end
 function MAD.pixels.img.scaleCrop(img, opt)
-    return image.scale( MAD.pixels.img.centerRatioCrop(img, opt.ratio), opt.size, opt.size )
+    opt = opt or {}
+    local ratio = opt.ratio or 1
+    return image.scale( MAD.pixels.img.centerRatioCrop(img, ratio), opt.size, opt.size )
 end
+
+
+
 
 
 MAD.mosaics = {}
