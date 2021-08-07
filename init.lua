@@ -623,12 +623,15 @@ function MAD.idir.getfiles(idir)
 end
 function MAD.idir.jpgs(idir, reparse)
     local fjpgs = idir..'_jpgs.th'
+    local fjpgs = idir..'_ids.th'
     local function run()
         local n = 0
         local files = {}
+        local ids = {}
         for file in dir.dirtree(idir) do
             if path.isfile(file) and path.extension(file) == '.jpg' then
                 table.insert(files,file)
+                table.insert(ids,path.basename(file))
                 n = n + 1
             end
             local n_str  = tostring(n)
@@ -639,6 +642,7 @@ function MAD.idir.jpgs(idir, reparse)
             end
         end
         torch.save(fjpgs, files)
+        torch.save(fids, ids)
     end
     if not path.exists(fjpgs) or reparse == 'reparse' then
         run()
