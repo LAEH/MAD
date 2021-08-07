@@ -1817,6 +1817,7 @@ print(ir)
    end
    print(t,b,l,r)
    img = image.scale(img, w, h)
+   print(#img)
    box[{ {},{t,b},{l,r} }] = img
    return box
 end
