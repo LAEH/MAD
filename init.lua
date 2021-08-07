@@ -1780,6 +1780,7 @@ function MAD.pixels.img.box(img, opt)
     print(s)
    local box = torch.FloatTensor(3,s,s)
 
+print('after')
    box[1] = rgb[1]
    box[2] = rgb[2]
    box[3] = rgb[3]
@@ -1812,6 +1813,7 @@ function MAD.pixels.img.box(img, opt)
       l = 1
       r = s
    end
+   print(t,b,l,r)
    img = image.scale(img, w, h)
    box[{ {},{t,b},{l,r} }] = img
    return box
