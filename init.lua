@@ -1036,18 +1036,20 @@ function MAD.flatten(idir)
     local odir = path.join("/Users/laeh_pro/tmp_trash", MAD.uid(1))
     MAD.file.move(tmpdir, odir)
 end
-function MAD.save(ofile, map)
+function MAD.save(ofile, content)
     MAD.parent(ofile)
-    image.save(ofile, map)
+    local ext = path.extension(ofile)
+    if ext == '.th' then
+        torch.save(ofile, content)
+    end
+    if ext == '.jpg' then
+         image.save(ofile, content)
+    end
+    if ext == '.csv' then
+        local csvigo = require('csvigo')
+        csvigo.save{data=content, path=ofile}
+    end
 end
-
-function MAD.save(ofile, map)
-    MAD.parent(ofile)
-    image.save(ofile, map)
-end
-MAD.copy = MAD.file.copy
-
-MAD.copy = MAD.file.copy
 
 function MAD.sortUp(list, dim)
     table.sort(list, function(a,b) return a[dim] < b[dim]  end)
