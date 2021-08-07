@@ -1780,7 +1780,7 @@ function MAD.pixels.img.box(img, opt)
     print(s)
    local box = torch.FloatTensor(3,s,s)
 
-print('after')
+
    box[1] = rgb[1]
    box[2] = rgb[2]
    box[3] = rgb[3]
@@ -1790,7 +1790,7 @@ print('after')
    local ir = iw / ih
 
    local w,h,t,b,l,r
-
+   print('after')
    if ir > 1 then
       w = s
       h = math.floor(s/ir)
