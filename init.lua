@@ -1777,7 +1777,7 @@ function MAD.pixels.img.box(img, opt)
     opt = opt or {}
     local rgb = opt.rgb
     local s = opt.size
-    print(s)
+    -- print(s)
    local box = torch.FloatTensor(3,s,s)
 
 
@@ -1788,10 +1788,10 @@ function MAD.pixels.img.box(img, opt)
    local iw = (#img)[3]
    local ih = (#img)[2]
    local ir = iw / ih
-print('after')
-print(iw)
-print(ih)
-print(ir)
+-- print('after')
+-- print(iw)
+-- print(ih)
+-- print(ir)
    local w,h,t,b,l,r
    if ir > 1 then
       w = s
@@ -1815,9 +1815,9 @@ print(ir)
       l = 1
       r = s
    end
-   print(t,b,l,r)
+   -- print(t,b,l,r)
    img = image.scale(img, w, h)
-   print(#img)
+   -- print(#img)
    box[{ {},{t,b},{l,r} }] = img
    return box
 end
