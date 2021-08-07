@@ -1842,6 +1842,10 @@ function MAD.pixels.img.shortEdgeScale(img, opt)
    local res = image.scale(img, ow, oh)
    return res
 end
+function MAD.pixels.img.scaleCrop(img, opt)
+    return image.scale( MAD.pixels.img.centerRatioCrop(img, opt.ratio), opt.size, opt.size )
+end
+
 
 MAD.mosaics = {}
 function MAD.mosaics.files2map(opt)
