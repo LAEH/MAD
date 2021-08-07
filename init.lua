@@ -623,7 +623,7 @@ function MAD.idir.getfiles(idir)
 end
 function MAD.idir.jpgs(idir, reparse)
     local fjpgs = idir..'_jpgs.th'
-    local fjpgs = idir..'_ids.th'
+    local fids = idir..'_ids.th'
     local function run()
         local n = 0
         local files = {}
@@ -1040,6 +1040,13 @@ function MAD.save(ofile, map)
     MAD.parent(ofile)
     image.save(ofile, map)
 end
+
+function MAD.save(ofile, map)
+    MAD.parent(ofile)
+    image.save(ofile, map)
+end
+MAD.copy = MAD.file.copy
+
 MAD.copy = MAD.file.copy
 
 function MAD.sortUp(list, dim)
