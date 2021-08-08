@@ -848,7 +848,8 @@ end
 
 function MAD.totar(idir, ofile)
     -- local destination = "/Volumes/5tb-bckp/og-backup-june30.tgz"
-    os.execute('tar cvf '..ofile..' '..idir)
+    local ofile = idir..'.tar.gz'
+    os.execute('tar -czvf '..ofile..' '..idir)
 end
 function MAD.idir.indexes(idir, name)
     MAD.print.function_name("MAD.idir.indexes(idir)")
