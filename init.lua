@@ -846,7 +846,7 @@ function MAD.idir.alphaOFF(idir)
 end
 
 
-function MAD.totar(idir, ofile)
+function MAD.totar(idir)
     -- local destination = "/Volumes/5tb-bckp/og-backup-june30.tgz"
     local ofile = idir..'.tar.gz'
     os.execute('tar -czvf '..ofile..' '..idir)
