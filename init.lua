@@ -3,23 +3,13 @@ local image = require 'image'
 local home = os.getenv('HOME')
 
 --[[
-luarocks install https://raw.githubusercontent.com/LAEH/MAD/master/mad-scm-1.rockspec
-RED_ixboae.jpg
-RED_ppusxc.jpg
-RED_ooutuf.jpg
-RED_7osaj9
-RED_1mvzub.jpg
-RED_qdtrkj.jpg
-RED_1mvzub.jpg
+    luarocks install https://raw.githubusercontent.com/LAEH/MAD/master/mad-scm-1.rockspec
 ]]
--- print(home)
 
 
 local MAD = {}
 
-MAD.trash = path.join(home, 'tmp_trash')
-dir.makepath(MAD.trash)
-
+MAD.trash = path.join(home, 'tmp_trash') dir.makepath(MAD.trash)
 
 MAD.black = col.black
 MAD.Black = col.Black
@@ -47,7 +37,6 @@ function MAD.rdmMinMax()
         max = math.max(a,b),
     }
 end
-
 function MAD.rdmidx(min, max)
     local a = torch.round(torch.uniform(min, max))
     return {
@@ -55,14 +44,9 @@ function MAD.rdmidx(min, max)
         max = math.max(a,b),
     }
 end
-
-
-
-MAD.blue = col.blue
 function MAD.file2id(file)
     return stringx.replace(path.basename(file), path.extension(file), '')
 end
-
 function MAD.d1s(d0)
     return dir.getdirectories(d0)
 end
@@ -90,7 +74,6 @@ end
 function MAD.home()
     return os.getenv('HOME')
 end
-
 function MAD.timestamp()
     local date = os.date("%x")
     local date_string = stringx.replace(date, '/', '-')
@@ -148,21 +131,10 @@ function MAD.uid(l)
     end
     return table.concat(tbl)
 end
-function MAD.thload(fth)
-    print('loading: ', col.green(fth))
-    local loaded = torch.load(fth)
-    print(col.Green('loaded: '))
-    return loaded
-end
-
-MAD.print = {}
-
 function MAD.number2comas(n)
    local left,num,right = string.match(n,'^([^%d]*%d)(%d*)(.-)$')
    return left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
 end
-MAD.number = {}
-
 function MAD.FormatNumber(Number,opt)
     opt = opt or {}
     local c = a or opt.character or '0'
@@ -170,7 +142,6 @@ function MAD.FormatNumber(Number,opt)
     local o = string.format('%'..c..w..'d', Number)
     return o
 end
-MAD.number.pad = MAD.FormatNumber
 function MAD.FormatNumberTest()
     print(MAD.FormatNumber(809810974697,{
         character = '0',
@@ -185,6 +156,36 @@ end
 function MAD.PrettyNumberTest()
     print(MAD.PrettyNumber(809810974697))
 end
+function MAD.P2(one, two, opt)
+    local one, two = tostring(one), tostring(two)
+    opt = opt or {}
+    local w1 = opt.w1 or 60
+    local w2 = opt.w2 or 20
+    local h1 = opt.h1 or 'green'
+    local h2 = opt.h2 or 'Green'
+    local s1 = col[h1]( stringx.rjust( one, w1 ) )
+    local s2 = col[h2]( stringx.ljust( two, w2 ) )
+    print('    '..s1..' '..s2)
+end
+function MAD.range(min,max,step)
+    local step = step or 1
+    local min = min or 1
+    local nsteps = max/step
+    local range = {}
+    for i=min,nsteps do
+        range[i]=i*step
+    end
+    return range
+end
+function MAD.totar(idir)
+   local ofile = idir..'.tar.gz'
+   os.execute('tar -czvf '..ofile..' '..idir)
+end
+
+MAD.number = {}
+MAD.number.pad = MAD.FormatNumber
+
+MAD.print = {}
 
 function MAD.print.P2(one, two, opt)
     local one, two = tostring(one), tostring(two)
@@ -193,18 +194,6 @@ function MAD.print.P2(one, two, opt)
     local w2 = opt.w2 or 12
     local h1 = opt.h1 or 'Green'
     local h2 = opt.h2 or 'Yellow'
-    local s1 = col[h1]( stringx.rjust( one, w1 ) )
-    local s2 = col[h2]( stringx.ljust( two, w2 ) )
-    print('    '..s1..' '..s2)
-end
-
-function MAD.P2(one, two, opt)
-    local one, two = tostring(one), tostring(two)
-    opt = opt or {}
-    local w1 = opt.w1 or 60
-    local w2 = opt.w2 or 20
-    local h1 = opt.h1 or 'green'
-    local h2 = opt.h2 or 'Green'
     local s1 = col[h1]( stringx.rjust( one, w1 ) )
     local s2 = col[h2]( stringx.ljust( two, w2 ) )
     print('    '..s1..' '..s2)
@@ -238,8 +227,6 @@ function MAD.print.two(one, two)
    two = stringx.ljust(tostring(two), 40)
    print( col.White(one), col.Blue(two) )
 end
-
-
 function MAD.print.fun(function_name)
    local str_function = col.Yellow(stringx.rjust('function',40))
    local str_name = col.Blue(stringx.ljust(function_name, 48))
@@ -276,17 +263,6 @@ function MAD.print.fonction(str, color1, color2)
 end
 
 MAD.list = {}
-
-function MAD.range(min,max,step)
-    local step = step or 1
-    local min = min or 1
-    local nsteps = max/step
-    local range = {}
-    for i=min,nsteps do
-        range[i]=i*step
-    end
-    return range
-end
 
 function MAD.list.createRange(min,max,step)
     local step = step or 1
@@ -403,124 +379,139 @@ function MAD.list.binSize(list, binSize)
     return binned
 end
 
-MAD.tbl = {}
+MAD.tbl = {
+    length = function(tbl)
+        local c = 0
+        for k, v in pairs (tbl) do
+            c = c + 1
+        end
+        return c
+    end,
+    bin = function (tbl, nbin)
+        local N = MAD.tbl.length(tbl)
+        local sbin = torch.round(N/nbin)
 
-function MAD.tbl.length(tbl)
-    local c = 0
-    for k, v in pairs (tbl) do
-        c = c + 1
-    end
-    return c
-end
+        local binSizes = {}
+        local sum = 0
+        for i=1, nbin - 1 do
+            binSizes[i] = sbin
+            sum = sum + binSizes[i]
+        end
+        binSizes[nbin] = N - sum
 
-function MAD.tbl.bin(tbl, nbin)
-    local N = MAD.tbl.length(tbl)
-    local sbin = torch.round(N/nbin)
+        local sum = 0
+        for _, binSize in ipairs(binSizes) do
+            sum = sum + binSize
+        end
 
-    local binSizes = {}
-    local sum = 0
-    for i=1, nbin - 1 do
-        binSizes[i] = sbin
-        sum = sum + binSizes[i]
-    end
-    binSizes[nbin] = N - sum
+        local cumul = 0
+        local binsMinMax = {}
+        for b, binSize in ipairs(binSizes) do
+            cumul = cumul + binSizes[b]
+            binsMinMax[b] = {
+                min = cumul - binSizes[b] + 1,
+                max = cumul
+            }
+            if b == nbin then binsMinMax[b].max = N end
+        end
 
-    local sum = 0
-    for _, binSize in ipairs(binSizes) do
-        sum = sum + binSize
-    end
-
-    local cumul = 0
-    local binsMinMax = {}
-    for b, binSize in ipairs(binSizes) do
-        cumul = cumul + binSizes[b]
-        binsMinMax[b] = {
-            min = cumul - binSizes[b] + 1,
-            max = cumul
-        }
-        if b == nbin then binsMinMax[b].max = N end
-    end
-
-    local tbl_binned = {}
-    for i=1, #binsMinMax do
-        tbl_binned[i] = {}
-    end
-    local c = 0
-    for k, v in pairs(tbl)do
-        c = c + 1
+        local tbl_binned = {}
         for i=1, #binsMinMax do
-            if c >= binsMinMax[i].min and c < binsMinMax[i].max then
-                tbl_binned[i][k] = v
+            tbl_binned[i] = {}
+        end
+        local c = 0
+        for k, v in pairs(tbl)do
+            c = c + 1
+            for i=1, #binsMinMax do
+                if c >= binsMinMax[i].min and c < binsMinMax[i].max then
+                    tbl_binned[i][k] = v
+                end
             end
         end
+        return tbl_binned
+    end,
+}
+
+MAD.csv = {
+    load = function(fcsv)
+       local csvigo = require('csvigo')
+       return csvigo.load{path=fcsv}
+    end,
+    save = function(fcsv, tbl)
+       local csvigo = require('csvigo')
+       csvigo.save{data=tbl, path=fcsv}
     end
-    return tbl_binned
-end
+}
 
-MAD.csv = {}
+MAD.file = {
+   copy = function(ifile, ofile)
+      if not path.exists(ofile) then
+         MAD.parent(ofile)
+         local command = 'cp -r "'..ifile..'" "'..ofile..'"'
+         os.execute(command)
+      end
+   end,
+   move = function(ifile, ofile)
+      MAD.parent(ofile)
+      local command = 'mv "'..ifile..'" "'..ofile..'"'
+      os.execute(command)
+   end,
+   trash = function(file)
+      local home = os.getenv('HOME')
+      local trash = path.join(home, '_trash')
+      local name = path.basename(file)
+      local ofile = path.join(trash, MAD.uid(1)..'-'..name)
+      MAD.parent(ofile)
+      local command = 'mv "'..file..'" "'..ofile..'"'
+      os.execute(command)
+   end,
+   name = function (ifile)
+      local basename = path.basename(ifile)
+      local ext = path.extension(basename)
+      local name = stringx.replace(basename, ext, "")
+      return name
+   end,
+   size = function(f)
+      local command = 'stat -f "%z" "' ..f..'"'
+      local s = tonumber( sys.execute(command) )
+      s = torch.round(s/10000)/100
+      return s
+   end,
+}
 
-function MAD.csv.load(fcsv)
-   local csvigo = require('csvigo')
-   return csvigo.load{path=fcsv}
-end
-function MAD.csv.save(fcsv, tbl)
-   local csvigo = require('csvigo')
-   csvigo.save{data=tbl, path=fcsv}
-end
 
-MAD.file = {}
-
-function MAD.file.copy(ifile, ofile)
-    if not path.exists(ofile) then
-        MAD.parent(ofile)
-        local command = 'cp -r "'..ifile..'" "'..ofile..'"'
-        -- print(command)
-        os.execute(command)
-    end
- end
- function MAD.file.name(ifile)
-   local basename = path.basename(ifile)
-   local ext = path.extension(basename)
-   local name = stringx.replace(basename, ext, "")
-   return name
-end
-function MAD.file.move(ifile, ofile)
-   local command = 'mv "'..ifile..'" "'..ofile..'"'
-   os.execute(command)
-end
-function MAD.file.trash(file)
-    local home = os.getenv('HOME')
-    local trash = path.join(home, '_trash')
-    local name = path.basename(file)
-    local ofile = path.join(trash, MAD.uid(1)..'-'..name)
-    MAD.parent(ofile)
-    local command = 'mv "'..file..'" "'..ofile..'"'
-    os.execute(command)
-end
 function MAD.file.isImage(file)
-    local function isImage(binary)
-        local c = string.char
-        local numbers = {
-            [c(0xff)..c(0xd8)..c(0xff)] = 'JPEG',
-            [c(0x89)..c(0x50)..c(0x4e)..c(0x47)] = 'PNG',
-        }
-        local families = {
-            JPEG = 'image',
-            PNG = 'image',
-        }
-        local type = numbers[binary:sub(1,1)] or numbers[binary:sub(1,3)] or numbers[binary:sub(1,4)]or numbers[binary:sub(1,3)..'_'..binary:sub(5,8)]
-        local family = families[type]
-        return type,family
-    end
-    local f = io.open(file)
-    if f then
-        local magic = f:read(8)
-        f:close()
-        if not magic or #magic < 8 then
-           return
-       end
-       return isImage(magic)
+   local function isImage(binary)
+      local c = string.char
+      local numbers = {
+         [c(0xff)..c(0xd8)..c(0xff)] = 'JPEG',
+         [c(0x89)..c(0x50)..c(0x4e)..c(0x47)] = 'PNG',
+      }
+      local families = {
+         JPEG = 'image',
+         PNG = 'image',
+      }
+      local type = numbers[binary:sub(1,1)] or numbers[binary:sub(1,3)] or numbers[binary:sub(1,4)]or numbers[binary:sub(1,3)..'_'..binary:sub(5,8)]
+      local family = families[type]
+      return type,family
    end
+   local f = io.open(file)
+   if f then
+      local magic = f:read(8)
+      f:close()
+      if not magic or #magic < 8 then
+         return
+      end
+         return isImage(magic)
+   end
+end
+function MAD.file.unzip(ifile, odir)
+   local cmd = 'unzip "'..ifile..'" -d "'..odir..'"'
+   os.execute(cmd)
+end
+function MAD.file.writekeyword(file, towrite)
+    local command = 'exiftool -keywords+='..towrite..' "'..file..'"'
+    os.execute(command)
 end
 function MAD.file.keywords(ifile)
    local p = io.popen('identify -verbose "' .. ifile .. '" | grep Keyword')
@@ -537,24 +528,6 @@ function MAD.file.keywords(ifile)
        end
    end
    return parsed
-end
-function MAD.file.size(f)
-    local command = 'stat -f "%z" "' ..f..'"'
-    local s = tonumber( sys.execute(command) )
-    s = torch.round(s/10000)/100
-    -- s = torch.round(s/10000)
-    return s
-end
-function MAD.file.unzip(ifile, odir)
-   local cmd = 'unzip "'..ifile..'" -d "'..odir..'"'
-   os.execute(cmd)
-end
-function MAD.file.writekeyword(file, towrite)
-    local command = 'exiftool -keywords+='..towrite..' "'..file..'"'
-    os.execute(command)
-end
-function MAD.file.name(file)
-    return stringx.replace( path.basename(file), path.extension(file), '')
 end
 
 MAD.files = {}
@@ -588,38 +561,19 @@ end
 
 MAD.idir = {}
 
-function MAD.idir.copyflat(idir, odir)
-    MAD.files.copy_flat(MAD.idir.jpgs(idir), odir)
-end
 function MAD.idir.getfiles(idir)
-
-    print('')
-    print(col.green(idir))
-    print('')
-    local count = 0 
-    local files = {}
-    local ext2files = {}
-    for file in dir.dirtree(idir) do
-        if path.isfile(file) then
-            local ext = path.extension(file)
-            ext2files[ext] = ext2files[ext] or {}
-            count = count + 1
-            table.insert(ext2files[ext], file)
-            table.insert(files, file)
-        end
-        io.write(' files found = '..count, '\r') io.flush()
-    end
-    print('')
-    for ext, files in pairs(ext2files) do
-        local count = col.Yellow(stringx.rjust(tostring(MAD.number2comas(#files)), 12))
-        local ext = col.Blue(stringx.rjust(ext, 12))
-        print(ext..count)
-    end
-    local result = {
-        files = files,
-        ext2files = ext2files,
-    }
-    -- return result
+   print('')
+   print(col.green(idir))
+   print('')
+   local count = 0
+   local files = {}
+   for file in dir.dirtree(idir) do
+      if path.isfile(file) then
+         table.insert(files, file)
+      end
+      io.write(' files found = '..count, '\r') io.flush()
+   end
+   return files
 end
 function MAD.idir.jpgs(idir, reparse)
     local fjpgs = idir..'_jpgs.th'
@@ -648,40 +602,6 @@ function MAD.idir.jpgs(idir, reparse)
         run()
     end
     return torch.load(fjpgs)
-end
-function MAD.idir.jpgsIds(idir, opt)
-    opt = opt or {}
-    local quiet = opt.quiet or false
-    local toreturn
-    local ofile = idir..'_jpgsIds.th'
-    if not path.exists(ofile) or opt.reparse then
-        local n = 0
-        local ids = {}
-        for file in dir.dirtree(idir) do
-            if path.isfile(file) and path.extension(file) == '.jpg' then
-                table.insert(ids,path.basename(file))
-                n = n + 1
-                if opt.limit then 
-                    if n > opt.limit then break end
-                end
-            end
-            local n_str  = tostring(n)
-            n_str = MAD.number2comas(n)
-            n_str = stringx.rjust(n_str, 12)
-            if not quiet then
-                io.write('n jpgs = ',col.Cyan(n_str), '\r') io.flush()
-            end
-        end
-        if not quiet then
-            print('')
-            print( col.Green(idir), col.Cyan(n) )
-        end
-        torch.save(ofile, files)
-        toreturn = files
-    else
-        toreturn = MAD.load(ofile)
-    end
-    return toreturn
 end
 function MAD.idir.jpgsleafs(idir, quiet)
     MAD.print.title("MAD.idir.jpgsleafs")
@@ -774,124 +694,42 @@ function MAD.idir.ext2files(idir)
     end
     return ext2files
 end
-
-
-function MAD.idir.ids(idir, opt)
-    opt = opt or {}
-    local toreturn
-    local ofile = idir..'_ids.th'
-    if not path.exists(ofile) or opt.reparse then
-        local n = 0
-        local ids = {}
-        for file in dir.dirtree(idir) do
-            if path.isfile(file) and path.extension(file) == '.jpg' and string.find(file, 'Ai_') then
-                local id = path.basename(file)
-                table.insert(ids,id)
-                n = n + 1
-                if opt.limit then 
-                    if n > opt.limit then break end
-                end
-            end
-            local n_str  = tostring(n)
-            n_str = MAD.number2comas(n)
-            n_str = stringx.rjust(n_str, 12)
-            if not quiet then
-                io.write('n jpgs = ',col.Cyan(n_str), '\r') io.flush()
-            end
-        end
-        if not opt.quiet then
-            print('')
-            print( col.Green(idir), col.Cyan(n) )
-        end
-        torch.save(ofile, ids)
-        toreturn = ids
-    else
-        toreturn = MAD.load(ofile)
-    end
-    return toreturn
+function MAD.idir.copyflat(idir, odir)
+   MAD.files.copy_flat(MAD.idir.jpgs(idir), odir)
 end
-
 function MAD.idir.removeEmpty(idir)
-    MAD.print.fun("MAD.idir.removeEmpty()")
-    local cd = 'cd "'..idir..'"; '
-    local command = 'cd "'..idir..'"&& find . -empty -type d -delete'
-    os.execute(command)
+   MAD.print.fun("MAD.idir.removeEmpty()")
+   local cd = 'cd "'..idir..'"; '
+   local command = 'cd "'..idir..'"&& find . -empty -type d -delete'
+   os.execute(command)
 end
 function MAD.idir.removeNotJpg(idir)
-    local odir = "/Users/laeh/_TMP_trash"
-    local ext2files = MAD.idir.ext2files(idir)
-    for ext, files in pairs(ext2files) do
-        MAD.print.two(ext, '#files')
-        if ext ~= '.jpg' then
-            for i, file in ipairs(files) do
-                xlua.progress(i, #files)
-                local ofile = path.join('/Users/laeh_pro/tmp_trash', path.basename(file))
-                MAD.parent(ofile)
-                MAD.file.move(file, ofile)
-            end
-        end
-    end
+   local odir = "/Users/laeh/_TMP_trash"
+   local ext2files = MAD.idir.ext2files(idir)
+   for ext, files in pairs(ext2files) do
+      MAD.print.two(ext, '#files')
+      if ext ~= '.jpg' then
+         for i, file in ipairs(files) do
+            xlua.progress(i, #files)
+            local ofile = path.join('/Users/laeh_pro/tmp_trash', path.basename(file))
+            MAD.parent(ofile)
+            MAD.file.move(file, ofile)
+         end
+      end
+   end
 end
 function MAD.idir.alphaOFF(idir)
-    local cmd1 = 'cd "'..idir..'" && find . -name "*.jpeg" -exec convert "{}" -alpha off "{}" \\;'
-    print(cmd1) os.execute(cmd1)
+   local cmd1 = 'cd "'..idir..'" && find . -name "*.jpeg" -exec convert "{}" -alpha off "{}" \\;'
+   print(cmd1) os.execute(cmd1)
 
-    local cmd2 = 'cd "'..idir..'" && find . -name "*.jpg" -exec convert "{}" -alpha off "{}" \\;'
-    print(cmd2) os.execute(cmd2)
+   local cmd2 = 'cd "'..idir..'" && find . -name "*.jpg" -exec convert "{}" -alpha off "{}" \\;'
+   print(cmd2) os.execute(cmd2)
 
-    local cmd3 = 'cd "'..idir..'" && find . -name "*.png" -exec convert "{}" -alpha off "{}" \\;'
-    print(cmd3) os.execute(cmd3)
+   local cmd3 = 'cd "'..idir..'" && find . -name "*.png" -exec convert "{}" -alpha off "{}" \\;'
+   print(cmd3) os.execute(cmd3)
 
-    os.execute('cd "'..idir..'"&& find . -empty -type d -delete')
-end
-
-
-function MAD.totar(idir)
-    -- local destination = "/Volumes/5tb-bckp/og-backup-june30.tgz"
-    local ofile = idir..'.tar.gz'
-    os.execute('tar -czvf '..ofile..' '..idir)
-end
-function MAD.idir.indexes(idir, name)
-    MAD.print.function_name("MAD.idir.indexes(idir)")
-    MAD.print.two("idir",idir)
-    local name = name or ''
-    local f_id2file = idir..name..'-'..'id2file.th'
-    local f_id2path = idir..name..'-'..'id2path.th'
-    local f_files = idir..name..'-'..'files.th'
-    local f_idfile = idir..name..'-'..'idfile.cscv'
-
-    local jpgs = MAD.idir.jpgs(idir)
-    local n = #jpgs
-
-    MAD.print.two('idir', idir)
-    MAD.print.two('n', n)
-
-    local id2file = {}
-    local id2path = {}
-    local files = {}
-    local idfile = {
-        id = {},
-        file = {},
-    }
-
-    local c = 0
-    for i, file in ipairs(jpgs) do
-        xlua.progress(i, #jpgs)
-        local id = path.basename(file)
-        local p = stringx.replace(file, idir, '')
-
-        id2file[id] = file
-        id2path[id] = p
-        table.insert(files, file)
-        table.insert(idfile.id, id)
-        table.insert(idfile.file, file)
-    end
-
-    torch.save(f_id2file, id2file)
-    torch.save(f_id2path, id2path)
-    torch.save(f_files, files)
-    MAD.csv.save(f_idfile, idfile)
-end
+   os.execute('cd "'..idir..'"&& find . -empty -type d -delete')
+-- end
 function MAD.idir.d1scounts(d0)
     local counts = {}
     local total = 0
@@ -910,14 +748,14 @@ function MAD.idir.d1scounts(d0)
     print("total", total)
 end
 function MAD.idir.countByExtension(idir, exts)
-    local ext2count = {}
-    for e, ext in ipairs( exts ) do
-        local cmd = 'find "'..idir..'"'..' -name "*'..ext..'" -type f | wc -l'
-        local n = sys.execute(cmd)
-        ext2count[ext] = n
-        print( n, col.Magenta(ext),col.Green(idir) )
-    end
-    return ext2count
+   local ext2count = {}
+   for e, ext in ipairs( exts ) do
+      local cmd = 'find "'..idir..'"'..' -name "*'..ext..'" -type f | wc -l'
+      local n = sys.execute(cmd)
+      ext2count[ext] = n
+      print( n, col.Magenta(ext),col.Green(idir) )
+   end
+   return ext2count
 end
 
 MAD.json = {}
@@ -1789,10 +1627,6 @@ function MAD.pixels.img.box(img, opt)
    local iw = (#img)[3]
    local ih = (#img)[2]
    local ir = iw / ih
--- print('after')
--- print(iw)
--- print(ih)
--- print(ir)
    local w,h,t,b,l,r
    if ir > 1 then
       w = s
@@ -1854,9 +1688,6 @@ function MAD.pixels.img.scaleCrop(img, opt)
     local ratio = opt.ratio or 1
     return image.scale( MAD.pixels.img.centerRatioCrop(img, ratio), opt.size, opt.size )
 end
-
-
-
 
 
 MAD.mosaics = {}
