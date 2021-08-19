@@ -1589,7 +1589,7 @@ function MAD.pixels.idir.bw2rgb(idir)
     end
 end
 function MAD.pixels.idir.gif(idir, ofile, delay)
-    local cmd = 'cd "'..idir..'" && convert -delay '..delay..' -loop 0 *.jpg "'..ofile..'"'
+    local cmd = 'cd "'..idir..'" && convert -delay '..delay..' -loop 1 *.jpg "'..ofile..'"'
     -- print(cmd)
     os.execute(cmd)
 end
