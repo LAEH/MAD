@@ -729,7 +729,7 @@ function MAD.idir.alphaOFF(idir)
    print(cmd3) os.execute(cmd3)
 
    os.execute('cd "'..idir..'"&& find . -empty -type d -delete')
--- end
+end
 function MAD.idir.d1scounts(d0)
     local counts = {}
     local total = 0
