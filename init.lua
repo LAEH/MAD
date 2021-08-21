@@ -6,7 +6,6 @@ local home = os.getenv('HOME')
     luarocks install https://raw.githubusercontent.com/LAEH/MAD/master/mad-scm-1.rockspec
 ]]
 
-
 local MAD = {}
 
 MAD.trash = path.join(home, 'tmp_trash') dir.makepath(MAD.trash)
@@ -28,6 +27,7 @@ MAD.White = col.White
 MAD.yellow = col.yellow
 MAD.Yellow = col.Yellow
 
+--🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
 
 function MAD.rdmMinMax()
     local a = torch.uniform(0, 1)
@@ -181,6 +181,8 @@ function MAD.totar(idir)
    local ofile = idir..'.tar.gz'
    os.execute('tar -czvf '..ofile..' '..idir)
 end
+
+--🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
 
 MAD.number = {}
 MAD.number.pad = MAD.FormatNumber
@@ -899,83 +901,52 @@ function MAD.sortDown(list, dim)
     return list
 end
 
+--🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
+--🏁                                                                   Pixels  🏁
+--🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
 
 MAD.pixels = {}
 
-MAD.pixels.create = {}
+MAD.pixels.create = {
+   uniform = function (opt)
+      opt = opt or {}
+      local size = opt.size or 256
+      local map = torch.ByteTensor(3,size,size)
 
-function MAD.pixels.create.uniform(opt)
-   opt = opt or {}
-   local size = opt.size or 256
-   local map = torch.ByteTensor(3,size,size)
+      map[1] = torch.uniform(0,255)
+      map[2] = torch.uniform(0,255)
+      map[3] = torch.uniform(0,255)
+      return map
+   end,
+   rdmgrad = function(opt)
+      local function R() return torch.random(0,255)/255 end
+      local function G() return torch.random(0,255)/255 end
+      local function B() return torch.random(0,255)/255 end
+      opt = opt or {}
+      local w = opt.w or 512
+      local h = opt.h or 512
 
-   map[1] = torch.uniform(0,255)
-   map[2] = torch.uniform(0,255)
-   map[3] = torch.uniform(0,255)
-   return map
-end
-function MAD.pixels.create.rdmgrad(opt)
-   local function R() return torch.random(0,255)/255 end
-   local function G() return torch.random(0,255)/255 end
-   local function B() return torch.random(0,255)/255 end
-   opt = opt or {}
-   local w = opt.w or 512
-   local h = opt.h or 512
+      local colors = {
+         {R(),G(),B()},
+         {R(),G(),B()},
+         {R(),G(),B()},
+         {R(),G(),B()},
+      }
+      local tl = opt.tl or colors[1]
+      local tr = opt.tr or colors[2]
+      local br = opt.br or colors[3]
+      local bl = opt.bl or colors[4]
 
-   local colors = {
-      {R(),G(),B()},
-      {R(),G(),B()},
-      {R(),G(),B()},
-      {R(),G(),B()},
-   }
-   local tl = opt.tl or colors[1]
-   local tr = opt.tr or colors[2]
-   local br = opt.br or colors[3]
-   local bl = opt.bl or colors[4]
-
-   local img = torch.FloatTensor({{tl,tr},{br,bl}})
-   img = img:transpose(1,3)
-   img = img:transpose(2,3)
-   img = image.scale(img,w,h)
-   return img
-end
+      local img = torch.FloatTensor({{tl,tr},{br,bl}})
+      img = img:transpose(1,3)
+      img = img:transpose(2,3)
+      img = image.scale(img,w,h)
+      return img
+   end,
+}
 
 MAD.pixels.ifile = {}
-function MAD.pixels.ifile.paddedbox(file, box)
-   local img = image.load(file)
-   local iw = (#img)[3]
-   local ih = (#img)[2]
-   local ir = iw / ih
-   local s = (#box)[3]
 
-   local w,h,t,b,l,r
-
-   if ir > 1 then
-      w = s
-      h = math.floor(s/ir)
-      t = math.ceil((s-h)/2)
-      b = t + h -1
-      l = 1
-      r = s
-   elseif ir < 1 then
-      w = math.floor(s*ir)
-      h = s
-      t = 1
-      l = math.ceil((s-w)/2)
-      b = s
-      r = l + w - 1
-   elseif ir == 1 then
-      w = s
-      h = s
-      t = 1
-      b = s
-      l = 1
-      r = s
-   end
-   img = image.scale(img, w, h)
-   box[{ {},{t,b},{l,r} }] = img
-   return box
-end
 function MAD.pixels.ifile.isok(file)
    local function isSupported(binary)
       local c = string.char
@@ -1001,30 +972,6 @@ function MAD.pixels.ifile.isok(file)
       end
       return isSupported(magic)
    end
-end
-function MAD.pixels.ifile.hsvx(ifile)
-   local command = './hsvx colors "'..ifile..'" 1'
-   local hue = sys.execute(command)
-   local scores = stringx.split(hue)
-   local tbl = {}
-   tbl.h = torch.round( tonumber( scores[1]) *100 )
-   tbl.s = torch.round( tonumber( scores[2]) *100 )
-   tbl.v = torch.round( tonumber( scores[3]) *100 )
-   tbl.x = torch.round( tonumber( scores[4]) *100 )
-   return tbl
-end
-function MAD.pixels.ifile.detect_whitePixel(ifile)
-   local isStuff
-   local img = image.load(ifile, 3, 'float' )
-   local top = img[{ {},{1,1},{1,1} }]
-   local sum = top[1]+top[2]+top[3]
-   local moyenne = sum/3
-   if moyenne[1][1] == 1 then
-      isStuff = true
-   else
-      isStuff = false
-   end
-   return isStuff
 end
 function MAD.pixels.ifile.ifile2bitmap(ifile, opt)
    opt = opt or {}
@@ -1112,6 +1059,41 @@ function MAD.pixels.ifile.padImage(opt)
    bgd.map[{ {},{img['t'],img['b']},{img['l'],img['r']} }] = img.map
    return bgd.map
 end
+function MAD.pixels.ifile.paddedbox(file, box)
+   local img = image.load(file)
+   local iw = (#img)[3]
+   local ih = (#img)[2]
+   local ir = iw / ih
+   local s = (#box)[3]
+
+   local w,h,t,b,l,r
+
+   if ir > 1 then
+      w = s
+      h = math.floor(s/ir)
+      t = math.ceil((s-h)/2)
+      b = t + h -1
+      l = 1
+      r = s
+   elseif ir < 1 then
+      w = math.floor(s*ir)
+      h = s
+      t = 1
+      l = math.ceil((s-w)/2)
+      b = s
+      r = l + w - 1
+   elseif ir == 1 then
+      w = s
+      h = s
+      t = 1
+      b = s
+      l = 1
+      r = s
+   end
+   img = image.scale(img, w, h)
+   box[{ {},{t,b},{l,r} }] = img
+   return box
+end
 function MAD.pixels.ifile.scale2fill(opt)
     opt = opt or {}
     local ifile = opt.ifile or error('!!ifile')
@@ -1173,19 +1155,124 @@ function MAD.pixels.ifile.CropBox(opt)
 
     image.save(ofile, img[{ {},{b.t, b.b},{b.l,b.r} }])
 end
-function MAD.pixels.ifile.toRGBA(opt)
-    opt = opt or {}
-    local ifile = opt.ifile
-    local ofile = opt.ofile
-    local alpha = opt.alpha
-    local command = 'convert "'..file..'"  -alpha set -background none -channel A -evaluate multiply '..alpha..' +channel "'..ofile..'"'
-    -- print( command )
-    os.execute( command )
+function MAD.pixels.ifile.hsvx(ifile)
+   local command = './hsvx colors "'..ifile..'" 1'
+   local hue = sys.execute(command)
+   local scores = stringx.split(hue)
+   local tbl = {}
+   tbl.h = torch.round( tonumber( scores[1]) *100 )
+   tbl.s = torch.round( tonumber( scores[2]) *100 )
+   tbl.v = torch.round( tonumber( scores[3]) *100 )
+   tbl.x = torch.round( tonumber( scores[4]) *100 )
+   return tbl
 end
-
+function MAD.pixels.ifile.detect_whitePixel(ifile)
+   local isStuff
+   local img = image.load(ifile, 3, 'float' )
+   local top = img[{ {},{1,1},{1,1} }]
+   local sum = top[1]+top[2]+top[3]
+   local moyenne = sum/3
+   if moyenne[1][1] == 1 then
+      isStuff = true
+   else
+      isStuff = false
+   end
+   return isStuff
+end
 
 MAD.pixels.img = {}
 
+function MAD.pixels.img.rgbmean(img)
+   img = image.scale(img, 16,16)
+   local sum = img[{{},{1,1},{1,1}}]
+   local n = 0
+   for x=1, 16 do
+      for y=1, 16 do
+         sum = sum + img[{{},{x,x},{y,y}}]
+         n = n + 1
+      end
+   end
+   local mean = sum/n
+   local r = mean[1][1][1]
+   local g = mean[2][1][1]
+   local b = mean[3][1][1]
+   return {r,g,b}
+end
+function MAD.pixels.img.box(img, opt)
+    opt = opt or {}
+    local rgb = opt.rgb
+    local s = opt.size
+    -- print(s)
+   local box = torch.FloatTensor(3,s,s)
+
+
+   box[1] = rgb[1]
+   box[2] = rgb[2]
+   box[3] = rgb[3]
+
+   local iw = (#img)[3]
+   local ih = (#img)[2]
+   local ir = iw / ih
+   local w,h,t,b,l,r
+   if ir > 1 then
+      w = s
+      h = math.floor(s/ir)
+      t = math.ceil((s-h)/2)
+      b = t + h -1
+      l = 1
+      r = s
+   elseif ir < 1 then
+      w = math.floor(s*ir)
+      h = s
+      t = 1
+      l = math.ceil((s-w)/2)
+      b = s
+      r = l + w - 1
+   elseif ir == 1 then
+      w = s
+      h = s
+      t = 1
+      b = s
+      l = 1
+      r = s
+   end
+   -- print(t,b,l,r)
+   img = image.scale(img, w, h)
+   -- print(#img)
+   box[{ {},{t,b},{l,r} }] = img
+   return box
+end
+function MAD.pixels.img.shortEdgeScale(img, opt)
+    opt = opt or {}
+
+
+   local dims = #img
+   local h,w = dims[2],dims[3]
+   local r = w/h
+
+   local ow,oh
+   if r > 1 then
+      -- print("r>1")
+        oh = opt.shortedge
+        ow = torch.round(oh * r)
+   end
+   if r < 1 then
+      -- print("r<1")
+      ow = opt.shortedge
+      oh = torch.round(ow / r)
+   end
+   if r ==1 then
+      ow = opt.shortedge
+      oh = opt.shortedge
+   end
+   local res = image.scale(img, ow, oh)
+   return res
+end
+function MAD.pixels.img.scaleCrop(img, opt)
+    opt = opt or {}
+    local ratio = opt.ratio or 1
+    return image.scale( MAD.pixels.img.centerRatioCrop(img, ratio), opt.size, opt.size )
+end
 function MAD.pixels.img.tint(img, colorName, factor)
     local factor = factor or 2
     local iw = (#img)[3]
@@ -1286,247 +1373,238 @@ function MAD.pixels.img.xHSL(opt)
 end
 
 
-MAD.pixels.img.shuffle = {}
+MAD.pixels.img.shuffle = {
+   global = function(img)
+      local channels = img:size(1)
+      local h = img:size(2)
+      local w = img:size(3)
+      local matrix = img:view(channels, w * h)
+      local perm = torch.randperm(w * h):long()
+      local pixels = matrix:index(2,perm)
+      local result = pixels:view(channels, h, w)
+      return result
+   end,
+   gaussian = function(img, spread)
+      opt = opt or {}
+      img = img:clone()
+      local raw = torch.data(img)
+      local w = (#img)[3]
+      local h  = (#img)[2]
+      local channels = (#img)[1]
+      local npixels = w * h
+      local maxSpread = math.max( w, h  )
+      local meanMaxSpread = maxSpread
+      local spread = spread or meanMaxSpread
+      if spread == 0 then
+         return img
+      end
+      local offsets_x = torch.data( torch.Tensor(npixels):normal(0, spread) )
+      local offsets_y = torch.data( torch.Tensor(npixels):normal(0, spread) )
+      local i = 0
 
-function MAD.pixels.img.shuffle.global(img)
-    local channels = img:size(1)
-    local h = img:size(2)
-    local w = img:size(3)
-    local matrix = img:view(channels, w * h)
-    local perm = torch.randperm(w * h):long()
-    local pixels = matrix:index(2,perm)
-    local result = pixels:view(channels, h, w)
-    return result
-end
-function MAD.pixels.img.shuffle.gaussian(img, spread)
-    opt = opt or {}
+      for y = 0,h -1 do
+         -- xlua.progress(y, h -1)
 
-    img = img:clone()
-    local raw = torch.data(img)
-    local w = (#img)[3]
-    local h  = (#img)[2]
-    local channels = (#img)[1]
-    local npixels = w * h
-    -- print(spread)
-    local maxSpread = math.max( w, h  )
-    local meanMaxSpread = maxSpread
-    local spread = spread or meanMaxSpread
-    if spread == 0 then
-       return img
-    end
-    local offsets_x = torch.data( torch.Tensor(npixels):normal(0, spread) )
-    local offsets_y = torch.data( torch.Tensor(npixels):normal(0, spread) )
-    local i = 0
-
-    for y = 0,h -1 do
-        -- xlua.progress(y, h -1)
-
-        for x = 0,w-1 do
+         for x = 0,w-1 do
             local dx = math.floor(0.5 + math.max(math.min(w-1,  x+offsets_x[i]), 0))
             local dy = math.floor(0.5 + math.max(math.min(h -1, y+offsets_y[i]), 0))
             local di = w*dy + dx
 
             for c = 0,channels-1 do
-                local buffer = raw[ npixels*c + i ]
-                raw[ npixels*c + i ] = raw[ npixels*c + di ]
-                raw[ npixels*c + di ] = buffer
+               local buffer = raw[ npixels*c + i ]
+               raw[ npixels*c + i ] = raw[ npixels*c + di ]
+               raw[ npixels*c + di ] = buffer
             end
             i = i + 1
-        end
-    end
-    collectgarbage()
-    return img
-end
-function MAD.pixels.img.shuffle.bin(ifile, opt)
-
-    -- local rng         = mad.list.create.range(2,15,2)
-    -- local rdmNo       = mad.list.sample_one(rng)
-    local opt         = opt or {}
-    local img         = image.load(ifile, 3, 'float' )
-    local ih          = opt.ih or 512
-    local iw          = opt.iw or 512
-    local ncol        = opt.ncol or 16
-    local nrow        = opt.nrow or 16
-    local img         = image.scale(img,ih,iw)[{{1,3}}]
-    local imgdims     = #img
-    local blockw      = imgdims[3]/ncol
-    local blockh      = imgdims[2]/nrow
-    local imgHSL      = image.rgb2hsv(img)*0.99
-    local blocks      = imgHSL:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
-    local allBlocks   = blocks:reshape( (#blocks)[1],(#blocks)[2]*(#blocks)[3],(#blocks)[4]*(#blocks)[5] )
-
-    for i = 1, (#allBlocks)[2] do
-    
-        xlua.progress(i,(#allBlocks)[2])
-        local rdmPositions = torch.randperm((#allBlocks)[3]) --Randomize Bins
-
-      for j = 1, (#allBlocks)[3] do
-
-         allBlocks[{ 1,i,j }] = allBlocks[{ 1,i,rdmPositions[j] }]
-         allBlocks[{ 2,i,j }] = allBlocks[{ 2,i,rdmPositions[j] }]
-         allBlocks[{ 3,i,j }] = allBlocks[{ 3,i,rdmPositions[j] }]
+         end
       end
-    end
+      collectgarbage()
+      return img
+   end,
+   bin = function(ifile, opt)
 
-    img = allBlocks:reshape((#blocks)[1],(#blocks)[2],(#blocks)[3],(#blocks)[4],(#blocks)[5])
-    print('Shuffle')
-    P2('channels', (#img)[1])
-    P2('height', (#img)[2])
-    P2('width', (#img)[3])
+     -- local rng         = mad.list.create.range(2,15,2)
+     -- local rdmNo       = mad.list.sample_one(rng)
+     local opt         = opt or {}
+     local img         = image.load(ifile, 3, 'float' )
+     local ih          = opt.ih or 512
+     local iw          = opt.iw or 512
+     local ncol        = opt.ncol or 16
+     local nrow        = opt.nrow or 16
+     local img         = image.scale(img,ih,iw)[{{1,3}}]
+     local imgdims     = #img
+     local blockw      = imgdims[3]/ncol
+     local blockh      = imgdims[2]/nrow
+     local imgHSL      = image.rgb2hsv(img)*0.99
+     local blocks      = imgHSL:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
+     local allBlocks   = blocks:reshape( (#blocks)[1],(#blocks)[2]*(#blocks)[3],(#blocks)[4]*(#blocks)[5] )
 
-    img = image.hsv2rgb(img:transpose(3,4):reshape(3,ih,iw))
-    print('Reorganize')
-    P2('channels', (#img)[1])
-    P2('height', (#img)[2])
-    P2('width', (#img)[3])
+     for i = 1, (#allBlocks)[2] do
+     
+         xlua.progress(i,(#allBlocks)[2])
+         local rdmPositions = torch.randperm((#allBlocks)[3]) --Randomize Bins
 
-    return img
-end
-function MAD.pixels.img.shuffle.cut(ifile, opt)
+       for j = 1, (#allBlocks)[3] do
 
-    opt = opt or {}
-    local img       = image.load(ifile, 3, 'float' )
-    local ih        = opt.ih or 1024
-    local iw        = opt.iw or 1024
-    local img       = image.scale(img,ih,iw)[{ {1,3} }]
-    local imgSize   = #img
-    local ncol      = opt.ncol or 16
-    local nrow      = opt.nrow or 16
-    local totalBlocksNo = ncol * nrow
-    local blockw = imgSize[3] / ncol
-    local blockh = imgSize[2] / nrow
-    local blocks = img:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
-    local allBlocks = blocks:reshape((#blocks)[1],
-                                    (#blocks)[2]*(#blocks)[3],
-                                    (#blocks)[4]*(#blocks)[5])
-    -- Generate Random posiiton & Randomize Bin Posiiton
-    local rdmPositions = torch.randperm((#allBlocks)[2])
-    for i = 1, (#allBlocks)[2] do
-      xlua.progress(i,(#allBlocks)[2])
-      allBlocks[{ 1,i }] = allBlocks[{ 1,rdmPositions[i] }]
-      allBlocks[{ 2,i }] = allBlocks[{ 2,rdmPositions[i] }]
-      allBlocks[{ 3,i }] = allBlocks[{ 3,rdmPositions[i] }]
-    end
-    local img = allBlocks:reshape((#blocks)[1],
-                                 (#blocks)[2],
-                                 (#blocks)[3],
-                                 (#blocks)[4],
-                                 (#blocks)[5])
-    local img = img:transpose(3,4):reshape(3,ih,iw)
-    return img
-end
+          allBlocks[{ 1,i,j }] = allBlocks[{ 1,i,rdmPositions[j] }]
+          allBlocks[{ 2,i,j }] = allBlocks[{ 2,i,rdmPositions[j] }]
+          allBlocks[{ 3,i,j }] = allBlocks[{ 3,i,rdmPositions[j] }]
+       end
+     end
 
+     img = allBlocks:reshape((#blocks)[1],(#blocks)[2],(#blocks)[3],(#blocks)[4],(#blocks)[5])
+     print('Shuffle')
+     P2('channels', (#img)[1])
+     P2('height', (#img)[2])
+     P2('width', (#img)[3])
 
-MAD.pixels.color = {}
-function MAD.pixels.color.rotate(opt)
-    opt = opt or {}
-    local img = opt.img
-    local dim = opt.dim
-    local shift = opt.shift or torch.uniform()
-    local i = image.rgb2hsl(img)
-    local dimidx
-    if dim == 'h' then dimidx = 1 end
-    if dim == 's' then dimidx = 2 end
-    if dim == 'l' then dimidx = 3 end
-    i[dimidx]:apply(function(x) return (x+shift)%1 end)
-    return image.hsl2rgb(i)
-end
-function MAD.pixels.color.invert(img)
-    return -img +1
-end
-function MAD.pixels.color.filter(img,opt)
-    local opt = opt or {}
-    local img = img
-    local rdm_min = torch.uniform(0.1,0.5)
-    local rdm_max = torch.uniform(0.5,0.9)
+     img = image.hsv2rgb(img:transpose(3,4):reshape(3,ih,iw))
+     print('Reorganize')
+     P2('channels', (#img)[1])
+     P2('height', (#img)[2])
+     P2('width', (#img)[3])
 
-    local mR = opt.mR or torch.uniform(rdm_min,rdm_max) --0.4
-    local mG = opt.mG or torch.uniform(rdm_min,rdm_max) --0.3
-    local mB = opt.mB or torch.uniform(rdm_min,rdm_max) --0.2
+     return img
+   end,
+   cut = function(ifile, opt)
+      opt = opt or {}
+      local img       = image.load(ifile, 3, 'float' )
+      local ih        = opt.ih or 1024
+      local iw        = opt.iw or 1024
+      local img       = image.scale(img,ih,iw)[{ {1,3} }]
+      local imgSize   = #img
+      local ncol      = opt.ncol or 16
+      local nrow      = opt.nrow or 16
+      local totalBlocksNo = ncol * nrow
+      local blockw = imgSize[3] / ncol
+      local blockh = imgSize[2] / nrow
+      local blocks = img:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
+      local allBlocks = blocks:reshape((#blocks)[1],
+                         (#blocks)[2]*(#blocks)[3],
+                         (#blocks)[4]*(#blocks)[5])
+      -- Generate Random posiiton & Randomize Bin Posiiton
+      local rdmPositions = torch.randperm((#allBlocks)[2])
+      for i = 1, (#allBlocks)[2] do
+         xlua.progress(i,(#allBlocks)[2])
+         allBlocks[{ 1,i }] = allBlocks[{ 1,rdmPositions[i] }]
+         allBlocks[{ 2,i }] = allBlocks[{ 2,rdmPositions[i] }]
+         allBlocks[{ 3,i }] = allBlocks[{ 3,rdmPositions[i] }]
+      end
+      local img = allBlocks:reshape((#blocks)[1],
+                         (#blocks)[2],
+                         (#blocks)[3],
+                         (#blocks)[4],
+                         (#blocks)[5])
+      local img = img:transpose(3,4):reshape(3,ih,iw)
+      return img
+   end,
+}
 
-    local i3 = img:clone()
-    -- (0) normalize the image energy to be 0 mean:
-    i3:add(-i3:mean())
-    -- (1) normalize all channels to have unit standard deviation:
-    i3:div(i3:std())
-    -- (2) filter indivudal channels differently (here we give an orange
-    --     filter, to warm up the image):
-    i3[1]:mul(mR)
-    i3[2]:mul(mG)
-    i3[3]:mul(mB)
-    -- (3) soft clip the image between 0 and 1
-    i3:mul(4):tanh():add(1):div(2)
-    return i3
-end
--- function MAD.pixels.color.bw(img)
---     return img:mean(1)
--- end
+MAD.pixels.img.blur = {
+   gaussian = function(img,kernelsize)
+      local h           = img:size(2)
+      local w           = img:size(3)
+      local kernelsize  = kernelsize or math.min(w,h)/8
+      -- Gaussian Kernel + Transpose
+      local g1 = image.gaussian1D(kernelsize):resize(1,kernelsize):float()
+      local g2 = g1:t() --transpose(1,2)
+      -- Check Dimensiosn
+      -- print(#g1)
+      -- print(#g2)
+      -- Resize & Clone
+      local i = img
+      c = i:clone():fill(1)
+      -- print{c,g1}
+      -- Convolution
+      c = image.convolve(c, g1, 'same')
+      c = image.convolve(c, g2, 'same')
+      i = image.convolve(i, g1, 'same')
+      i = image.convolve(i, g2, 'same')
+      -- Component-wise division + retransform
+      i:cdiv(c)
+      return i
+   end,
+   aperture = function(img,apertureSize)
+      apertureSize = tostring(apertureSize)
+      local aperture = image.load("assets/mad.pixels/"..'aperture_'..apertureSize..'.png',4)
+      aperture:div(aperture:sum())
+      local res = image.convolve(img,aperture[1],'same')
+      res:div(res:max())
+      return res
+   end
+}
 
-function MAD.pixels.color.bw(im)
-    -- Image.rgb2y uses a different weight mixture
+MAD.pixels.img.color = {
+   rotate = function(opt)
+      opt = opt or {}
+      local img = opt.img
+      local dim = opt.dim
+      local shift = opt.shift or torch.uniform()
+      local i = image.rgb2hsl(img)
+      local dimidx
+      if dim == 'h' then dimidx = 1 end
+      if dim == 's' then dimidx = 2 end
+      if dim == 'l' then dimidx = 3 end
+      i[dimidx]:apply(function(x) return (x+shift)%1 end)
+      return image.hsl2rgb(i)
+   end,
+   invert = function(img)
+      return -img +1
+   end,
+   filter = function(img,opt)
+      local opt = opt or {}
+      local img = img
+      local rdm_min = torch.uniform(0.1,0.5)
+      local rdm_max = torch.uniform(0.5,0.9)
 
-    local dim, w, h = im:size()[1], im:size()[2], im:size()[3]
-    if dim ~= 3 then
-       print('<error> expected 3 channels')
-       return im
-    end
+      local mR = opt.mR or torch.uniform(rdm_min,rdm_max) --0.4
+      local mG = opt.mG or torch.uniform(rdm_min,rdm_max) --0.3
+      local mB = opt.mB or torch.uniform(rdm_min,rdm_max) --0.2
 
-    -- a cool application of tensor:select
-    local r = im:select(1, 1)
-    local g = im:select(1, 2)
-    local b = im:select(1, 3)
+      local i3 = img:clone()
+      -- (0) normalize the image energy to be 0 mean:
+      i3:add(-i3:mean())
+      -- (1) normalize all channels to have unit standard deviation:
+      i3:div(i3:std())
+      -- (2) filter indivudal channels differently (here we give an orange
+      --     filter, to warm up the image):
+      i3[1]:mul(mR)
+      i3[2]:mul(mG)
+      i3[3]:mul(mB)
+      -- (3) soft clip the image between 0 and 1
+      i3:mul(4):tanh():add(1):div(2)
+      return i3
+   end,
+   tobw = function(im)
+      -- Image.rgb2y uses a different weight mixture
 
-    local z = torch.Tensor(w, h):zero()
+      local dim, w, h = im:size()[1], im:size()[2], im:size()[3]
+      if dim ~= 3 then
+         print('<error> expected 3 channels')
+         return im
+      end
 
-    -- z = z + 0.21r
-    z = z:add(0.21, r)
-    z = z:add(0.72, g)
-    z = z:add(0.07, b)
+      -- a cool application of tensor:select
+      local r = im:select(1, 1)
+      local g = im:select(1, 2)
+      local b = im:select(1, 3)
 
-    local map = torch.FloatTensor(3, h, w):uniform( 0,.1)
-    map[1] = z
-    map[2] = z
-    map[3] = z
-    return map
-end
+      local z = torch.Tensor(w, h):zero()
 
+      -- z = z + 0.21r
+      z = z:add(0.21, r)
+      z = z:add(0.72, g)
+      z = z:add(0.07, b)
 
-MAD.pixels.blur = {}
-
-function MAD.pixels.blur_gaussian(img,kernelsize)
-    local h           = img:size(2)
-    local w           = img:size(3)
-    local kernelsize  = kernelsize or math.min(w,h)/8
-    -- Gaussian Kernel + Transpose
-    local g1 = image.gaussian1D(kernelsize):resize(1,kernelsize):float()
-    local g2 = g1:t() --transpose(1,2)
-    -- Check Dimensiosn
-    -- print(#g1)
-    -- print(#g2)
-    -- Resize & Clone
-    local i = img
-    c = i:clone():fill(1)
-    -- print{c,g1}
-    -- Convolution
-    c = image.convolve(c, g1, 'same')
-    c = image.convolve(c, g2, 'same')
-    i = image.convolve(i, g1, 'same')
-    i = image.convolve(i, g2, 'same')
-    -- Component-wise division + retransform
-    i:cdiv(c)
-    return i
-end
-function MAD.pixels.blur.aperture(img,apertureSize)
-    apertureSize = tostring(apertureSize)
-    local aperture = image.load("assets/mad.pixels/"..'aperture_'..apertureSize..'.png',4)
-    aperture:div(aperture:sum())
-    local res = image.convolve(img,aperture[1],'same')
-    res:div(res:max())
-    return res
-end
+      local map = torch.FloatTensor(3, h, w):uniform( 0,.1)
+      map[1] = z
+      map[2] = z
+      map[3] = z
+      return map
+   end,
+}
 
 MAD.pixels.idir = {}
-
 function MAD.pixels.idir.bw2rgb(idir)
     local files = MAD.idir.jpgs(idir)
     for i, file in ipairs(files) do
@@ -1594,101 +1672,9 @@ function MAD.pixels.idir.gif(idir, ofile, delay)
     os.execute(cmd)
 end
 
-
-
-function MAD.pixels.img.rgbmean(img)
-   img = image.scale(img, 16,16)
-   local sum = img[{{},{1,1},{1,1}}]
-   local n = 0
-   for x=1, 16 do
-      for y=1, 16 do
-         sum = sum + img[{{},{x,x},{y,y}}]
-         n = n + 1
-      end
-   end
-   local mean = sum/n
-   local r = mean[1][1][1]
-   local g = mean[2][1][1]
-   local b = mean[3][1][1]
-   return {r,g,b}
-end
-function MAD.pixels.img.box(img, opt)
-    opt = opt or {}
-    local rgb = opt.rgb
-    local s = opt.size
-    -- print(s)
-   local box = torch.FloatTensor(3,s,s)
-
-
-   box[1] = rgb[1]
-   box[2] = rgb[2]
-   box[3] = rgb[3]
-
-   local iw = (#img)[3]
-   local ih = (#img)[2]
-   local ir = iw / ih
-   local w,h,t,b,l,r
-   if ir > 1 then
-      w = s
-      h = math.floor(s/ir)
-      t = math.ceil((s-h)/2)
-      b = t + h -1
-      l = 1
-      r = s
-   elseif ir < 1 then
-      w = math.floor(s*ir)
-      h = s
-      t = 1
-      l = math.ceil((s-w)/2)
-      b = s
-      r = l + w - 1
-   elseif ir == 1 then
-      w = s
-      h = s
-      t = 1
-      b = s
-      l = 1
-      r = s
-   end
-   -- print(t,b,l,r)
-   img = image.scale(img, w, h)
-   -- print(#img)
-   box[{ {},{t,b},{l,r} }] = img
-   return box
-end
-
-function MAD.pixels.img.shortEdgeScale(img, opt)
-    opt = opt or {}
-
-
-   local dims = #img
-   local h,w = dims[2],dims[3]
-   local r = w/h
-
-   local ow,oh
-   if r > 1 then
-      -- print("r>1")
-        oh = opt.shortedge
-        ow = torch.round(oh * r)
-   end
-   if r < 1 then
-      -- print("r<1")
-      ow = opt.shortedge
-      oh = torch.round(ow / r)
-   end
-   if r ==1 then
-      ow = opt.shortedge
-      oh = opt.shortedge
-   end
-   local res = image.scale(img, ow, oh)
-   return res
-end
-function MAD.pixels.img.scaleCrop(img, opt)
-    opt = opt or {}
-    local ratio = opt.ratio or 1
-    return image.scale( MAD.pixels.img.centerRatioCrop(img, ratio), opt.size, opt.size )
-end
-
+--🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
+--🏁                                                                   Mosaics 🏁
+--🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
 
 MAD.mosaics = {}
 function MAD.mosaics.files2map(opt)
@@ -2135,62 +2121,6 @@ function MAD.mosaics.m2.fromImagesList()
    end
 end
 
-MAD.mosaics.geometries = {
-    ['square_square'] = {
-        files = files,
-        mr = 1,
-        iw = 32,
-        ih = 32,
-    },
-    ['landscape_square'] = {
-        files = files,
-        mr = 2,
-        iw = 32,
-        ih = 32,
-    },
-    ['portrait_square'] = {
-        files = files,
-        mr = 1,
-        iw = 32,
-        ih = 32,
-    },
-    ['square_portrait'] = {
-        files = files,
-        mr = .5,
-        iw = 16,
-        ih = 32,
-    },
-    ['landscape_portrait'] = {
-        files = files,
-        mr = .5,
-        iw = 16,
-        ih = 32,
-    },
-    ['portrait_portrait'] = {
-        files = files,
-        mr = .5,
-        iw = 16,
-        ih = 32,
-    },
-    ['square_landscape'] = {
-        files = files,
-        mr = 2,
-        iw = 16,
-        ih = 32,
-    },
-    ['landscape_landscape'] = {
-        files = files,
-        mr = 2,
-        iw = 16,
-        ih = 32,
-    },
-    ['portrait_landscape'] = {
-        files = files,
-        mr = 2,
-        iw = 16,
-        ih = 32,
-    }
-}
 
 return MAD
 
