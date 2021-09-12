@@ -1606,29 +1606,45 @@ function MAD.pixels.idir.mu(files, S, talk)
 	end
 	return sum/#files
 end
-function MAD.pixels.idir.hsvx(opt)
-	MAD.print.title("MAD.pixels.idir.hsvx()")
-	print(idir)
-	local idir = opt.idir
-	local fcsv = opt.fcsv
-	local fth = opt.fth
-
+function MAD.pixels.idir.hsvx(idir, opt)
+	MAD.P2("MAD.pixels.idir.hsvx()",idir)
+	opt = opt or {}
+	local dirname = path.dirname(idir)
+	local fcsv = opt.fcsv or path.join(dirname,'hsvx.csv')
+	local fth = opt.fth or path.join(dirname,'id2hsvx.th')
 	local files = MAD.idir.jpgs(idir,'reparse')
+
 	local id2hsvx = {}
-	local f = io.open(fcsv, 'w')
-	local header = 'id'..','..'h'..','..'s'..','..'v'..','..'x'
-	f:write(header, "\n")
-	for i, file in ipairs(files) do
-		xlua.progress(i,#files)
-		local hsvx = MAD.pixels.ifile.hsvx(file)
-		local id = path.basename(file)
-		id2hsvx[id] = hsvx
-		local row = id..','..hsvx.h..','..hsvx.s..','..hsvx.v..','..hsvx.x
-		f:write(row, "\n")
+
+	-- if path.exists(fcsv) then
+	-- 	local data = MAD.load(fid2hsvx)
+	-- 	ids = data['id']
+	-- 	n = #ids
+	-- end
+
+	local files = MAD.idir.jpgs(idir)
+
+	if not path.exists(fcsv) or n ~= #files then
+		local f = io.open(fcsv, 'w')
+		local header = 'id'..','..'h'..','..'s'..','..'v'..','..'x'
+		f:write(header, "\n")
+
+		for i, file in ipairs(files) do
+			local ext = path.extension(file)
+			if ext == '.jpg' then
+				xlua.progress(i,#files)
+				local hsvx = MAD.pixels.ifile.hsvx(file)
+				local id = path.basename(file)
+				id2hsvx[id] = hsvx
+				local row = id..','..hsvx.h..','..hsvx.s..','..hsvx.v..','..hsvx.x
+				f:write(row, "\n")
+			end
+		end
+		f:close()
+		torch.save(fth, id2hsvx)
 	end
-	f:close()
-	torch.save(fth, id2hsvx)
 end
+
 function MAD.pixels.idir.bw2rgb(idir)
 	MAD.print.title("MAD.pixels.idir.bw2rgb()")
 	print(idir)
@@ -2081,7 +2097,6 @@ function MAD.mosaics.m2.fromImagesList()
 	  end
    end
 end
-
 
 return MAD
 
