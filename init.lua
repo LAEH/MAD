@@ -560,7 +560,7 @@ end
 
 MAD.idir = {}
 
-function MAD.idir.getfiles(idir)
+function MAD.idir.files(idir)
    print('')
    print(col.green(idir))
    print('')
