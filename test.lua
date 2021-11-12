@@ -1,37 +1,5 @@
 local MAD = require 'MAD'
 
-local function countD1s()
-	local d0 = "/Users/laeh_15/Pictures/red100k/assets/versions"
-	local d1s = dir.getdirectories(d0)
-	for i, d1 in ipairs(d1s) do
-		local vname = path.basename(d1)
-		local files = MAD.idir.jpgs(d1)
-		MAD.P2(vname, #files)	
-	end
-end
-
-
--- MAD.pixels.img.centerRatioCrop(img, ratio)
--- MAD.pixels.ifile.paddedbox(file, box)
-
--- local map = torch.FloatTensor(3,ih,iw)
-
--- local idir = "/Users/laeh_15/LAimages/laeh_pro/2TB/laeh/laeh.images/images.laeh/LA•images/Trees/XX Curation and Mosaics/Red Pornstars/XX.Mosaics.Pornstars/0.04/128*128"
-
-local function mosaic()
-	local idir = "/Users/laeh_15/LAimages/laeh_pro/2TB/laeh/laeh.images/images.laeh/LA•images/Trees/XX Curation and Mosaics/Red Pornstars/XX.Mosaics.Pornstars/3"
-
-	local files = MAD.idir.jpgs(idir)
-	print(files)
-	MAD.img.show(MAD.mosaics.files2map({
-		files = files,
-		mr = 1.6,
-		iw = 128,
-		ih = 128,
-		quiet = false,
-	}))
-end
-
 function hex2rgb(hex, alpha)
 	local r, g, b = hex:match("(%w%w)(%w%w)(%w%w)")
 	r = (tonumber(r, 16) or 0) / 255
@@ -176,15 +144,162 @@ local colorsHEX = {
 }
 
 
-for i, color in ipairs(colorsHEX) do
-	print(x2r(color))
+-- for i, color in ipairs(colorsHEX) do
+-- 	print(x2r(color))
+-- end
+
+
+
+
+--    function formula(n,id)
+--       local n = n or 1e6
+--       local id = id or torch.round(torch.uniform(1,n))
+--       id = id - 1
+--       assert(id >= 0 and id < n, 'id must be in [1,n]')
+--       local vocab = 26
+--       local charS = 97
+--       local charE = charS + vocab - 1
+--       local elts = 1
+--       local chars = 0
+--       while true do
+--          elts = elts * vocab
+--          chars = chars + 1
+--          if elts >= n then
+--             break
+--          end
+--       end
+--       local cs = {}
+--       while true do
+--          chars = chars - 1
+--          local basis = vocab ^ chars
+--          local c = math.floor(id / basis)
+--          table.insert(cs, c)
+--          id = id - c*basis
+--          if chars == 0 then
+--             break
+--          end
+--       end
+--       local ccs = {}
+--       for i,c in ipairs(cs) do
+--          ccs[i] = string.char(charS + c)
+--       end
+--       return table.concat(ccs,'')
+--    end
+--    function uid_make(n)
+--       local n = n or error("Missing uids number")
+--       print('Generating uids')
+--       local p = torch.randperm(n)
+--       local tbl = {}
+--       for i=1, n do
+--          xlua.progress(i, n)
+--          local uid = formula(n,p[i])
+--          table.insert(tbl, 'heaven_'..uid)
+--          -- collectgarbage('step')
+--       end
+--       return tbl
+--    end
+
+function formula(n,id)
+   local n = n or 1e6
+   local id = id or torch.round(torch.uniform(1,n))
+   id = id - 1
+   assert(id >= 0 and id < n, 'id must be in [1,n]')
+   local vocab = 26
+   local charS = 97
+   local charE = charS + vocab - 1
+   local elts = 1
+   local chars = 0
+   while true do
+      elts = elts * vocab
+      chars = chars + 1
+      if elts >= n then
+         break
+      end
+   end
+   local cs = {}
+   while true do
+      chars = chars - 1
+      local basis = vocab ^ chars
+      local c = math.floor(id / basis)
+      table.insert(cs, c)
+      id = id - c*basis
+      if chars == 0 then
+         break
+      end
+   end
+   local ccs = {}
+   for i,c in ipairs(cs) do
+      ccs[i] = string.char(charS + c)
+   end
+   return table.concat(ccs,'')
+end
+function uid_make(n)
+   local n = n or error("Missing uids number")
+   print('Generating uids')
+   local p = torch.randperm(n)
+   local tbl = {}
+   for i=1, n do
+      xlua.progress(i, n)
+      local uid = formula(n,p[i])
+      table.insert(tbl, ''..uid)
+      -- collectgarbage('step')
+   end
+   return tbl
 end
 
+local fs = {}
+fs['art0_uids_1,000,000'] = path.join('data', 'uids', 'art0_1,000,000.th')
+MAD.parent(fs['art0_uids_1,000,000'])
+if not path.exists(fs['art0_uids_1,000,000']) then
+	local uids = uid_make(1000000)
+	torch.save(fs['art0_uids_1,000,000'], uids)
+end
 
+-- function MADuid.get(opt)
+--    opt = opt or {}
 
-MAD.mosaics.files2map({
-	files = files,
-	mr = 1,
-	iw = 64,
-	ih = 64,
-})
+--    local n = opt.n or error('How many you idiots ?')
+--    local f = opt.f or error('From which list file ?')
+--    local ext = path.extension(f)
+--    local fname  = stringx.replace( f, ext, '')
+
+--    local ds = {}
+--    ds.backups  = stringx.replace( f, ext, '')..'_backup'
+--    ds.backup = path.join( ds.backups, MAD.date()..'-'..MADuid.simple(1) )
+
+--    local fs = {}
+--    fs.backup_total = path.join( ds.backup, 'total'..ext)
+--    fs.backup_sample = path.join( ds.backup, 'sample'..ext)
+--    fs.backup_left = path.join( ds.backup, 'left'..ext)
+
+--    print('loading uids from', col.green(f))
+
+--    local uids = torch.load(f)
+--    print('available',#uids)
+
+--    local sample = {}
+--    for i=1, n do
+--       table.insert(sample, uids[i])
+--    end
+
+--    local left = {}
+--    for i=n+1, #uids do
+--       table.insert(left, uids[i])
+--    end
+
+--    print('n',n)
+--    print('total',#uids)
+--    print('sample',#sample)
+--    print('left',#left)
+
+--    MAD.file.copy( f, fs.backup_total)
+--    torch.save( fs.backup_sample, sample )
+--    torch.save( fs.backup_left, left )
+--    MAD.file.copy( fs.backup_left, f )
+
+--    print( 'fs.backup_total', fs.backup_total)
+--    print( 'fs.backup_sample', fs.backup_sample)
+--    print( 'fs.backup_left', fs.backup_left)
+
+--    return sample
+-- end

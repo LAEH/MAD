@@ -24,27 +24,13 @@ local MAD = {
 	Yellow = col.Yellow,
 }
 
-
 --🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
 
-function MAD.rdmMinMax()
-	local a = torch.uniform(0, 1)
-	local b = torch.uniform(0, 1)
-	return {
-		min = math.min(a,b),
-		max = math.max(a,b),
-	}
-end
-function MAD.rdmidx(min, max)
-	local a = torch.round(torch.uniform(min, max))
-	return {
-		min = math.min(a,b),
-		max = math.max(a,b),
-	}
-end
-function MAD.file2id(file)
+function MAD.file2name(file)
 	return stringx.replace(path.basename(file), path.extension(file), '')
 end
+-- print(MAD.file2name("/Users/laeh_15/Documents/GitHub/MAD/mad-scm-1.rockspec"))
+
 function MAD.d1s(d0)
 	return dir.getdirectories(d0)
 end
@@ -151,6 +137,7 @@ function MAD.PrettyNumber(n)
    local str = left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
    return str
 end
+-- print(MAD.PrettyNumber(898928.099))
 function MAD.PrettyNumberTest()
 	print(MAD.PrettyNumber(809810974697))
 end
@@ -182,10 +169,36 @@ end
 
 --🏁©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©©🏁
 
+MAD.rdm = {}
+function MAD.rdm.minmax01()
+	local a = torch.uniform(0, 1)
+	local b = torch.uniform(0, 1)
+	return {
+		min = math.min(a,b),
+		max = math.max(a,b),
+	}
+end
+-- print(MAD.rdm.minmax01())
+
+function MAD.rdm.integer(min, max)
+	return torch.round(torch.uniform(min, max))
+end
+-- print(MAD.rdm.integer(0.76, 89))
+
 MAD.number = {}
 MAD.number.pad = MAD.FormatNumber
 MAD.print = {}
 
+function MAD.print.colors()
+	print( col['red']('red'), col['Red']('Red') )
+	print( col['blue']('blue'), col['Blue']('Blue') )
+	print( col['cyan']('cyan'), col['Cyan']('Cyan') )
+	print( col['black']('black'), col['Black']('Black') )
+	print( col['green']('green'), col['Green']('Green') )
+	print( col['white']('white'), col['White']('White') )
+	print( col['yellow']('yellow'), col['Yellow']('Yellow') )
+	print( col['magenta']('magenta'), col['Magenta']('Magenta') )
+end
 function MAD.print.P2(one, two, opt)
 	local one, two = tostring(one), tostring(two)
 	opt = opt or {}
@@ -204,16 +217,6 @@ function MAD.print.P2TEST()
 		h1 = 'magenta',
 		h2 = 'Magenta',
 	})
-end
-function MAD.print.colors()
-	print( col['red']('red'), col['Red']('Red') )
-	print( col['blue']('blue'), col['Blue']('Blue') )
-	print( col['cyan']('cyan'), col['Cyan']('Cyan') )
-	print( col['black']('black'), col['Black']('Black') )
-	print( col['green']('green'), col['Green']('Green') )
-	print( col['white']('white'), col['White']('White') )
-	print( col['yellow']('yellow'), col['Yellow']('Yellow') )
-	print( col['magenta']('magenta'), col['Magenta']('Magenta') )
 end
 function MAD.print.d1s(d0)
 	local d1s = dir.getdirectories(d0)
@@ -564,11 +567,12 @@ function MAD.idir.files(idir)
    print('')
    print(col.green(idir))
    print('')
-   local count = 0
+   local c = 0
    local files = {}
    for file in dir.dirtree(idir) do
-	  if path.isfile(file) then
-		 table.insert(files, file)
+	  	if path.isfile(file) then
+			table.insert(files, file)
+			c = c + 1
 	  end
 	  io.write(' files found = '..count, '\r') io.flush()
    end
@@ -842,6 +846,9 @@ function MAD.apply_model(opt)
 
 	print(speed..' img/sec')
 end
+
+
+
 function MAD.flatten_d1s(d0)
 	-- local d0 = "/Volumes/8tb/école.images/images.8C/NA (Nature, Elements, Photographie)/trees/MIX"
 	local tmpdir = d0..'tmp'
@@ -1176,6 +1183,7 @@ function MAD.pixels.ifile.detect_whitePixel(ifile)
    return isStuff
 end
 
+
 MAD.pixels.img = {}
 
 function MAD.pixels.img.rgbmean(img)
@@ -1376,115 +1384,104 @@ MAD.pixels.img.shuffle = {
 		return img
    end,
    bin = function(ifile, opt)
+		local opt         = opt or {}
+		local img         = image.load(ifile, 3, 'float' )
+		local ih          = opt.ih or 2000
+		local iw          = opt.iw or 2000
+		local ncol        = opt.ncol or 16
+		local nrow        = opt.nrow or 16
+		local img         = image.scale(img,ih,iw)[{{1,3}}]
+		local imgdims     = #img
+		local blockw      = imgdims[3]/ncol
+		local blockh      = imgdims[2]/nrow
+		local imgHSL      = image.rgb2hsv(img)*0.99
+		local blocks      = imgHSL:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
+		local allBlocks   = blocks:reshape( (#blocks)[1],(#blocks)[2]*(#blocks)[3],(#blocks)[4]*(#blocks)[5] )
 
-	 -- local rng         = mad.list.create.range(2,15,2)
-	 -- local rdmNo       = mad.list.sample_one(rng)
-	 local opt         = opt or {}
-	 local img         = image.load(ifile, 3, 'float' )
-	 local ih          = opt.ih or 512
-	 local iw          = opt.iw or 512
-	 local ncol        = opt.ncol or 16
-	 local nrow        = opt.nrow or 16
-	 local img         = image.scale(img,ih,iw)[{{1,3}}]
-	 local imgdims     = #img
-	 local blockw      = imgdims[3]/ncol
-	 local blockh      = imgdims[2]/nrow
-	 local imgHSL      = image.rgb2hsv(img)*0.99
-	 local blocks      = imgHSL:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
-	 local allBlocks   = blocks:reshape( (#blocks)[1],(#blocks)[2]*(#blocks)[3],(#blocks)[4]*(#blocks)[5] )
+		for i = 1, (#allBlocks)[2] do
+			xlua.progress(i,(#allBlocks)[2])
+			local rdmPositions = torch.randperm((#allBlocks)[3]) --Randomize Bins
+			for j = 1, (#allBlocks)[3] do
+				allBlocks[{ 1,i,j }] = allBlocks[{ 1,i,rdmPositions[j] }]
+				allBlocks[{ 2,i,j }] = allBlocks[{ 2,i,rdmPositions[j] }]
+				allBlocks[{ 3,i,j }] = allBlocks[{ 3,i,rdmPositions[j] }]
+			end
+		end
 
-	 for i = 1, (#allBlocks)[2] do
-	 
-		 xlua.progress(i,(#allBlocks)[2])
-		 local rdmPositions = torch.randperm((#allBlocks)[3]) --Randomize Bins
+		img = allBlocks:reshape((#blocks)[1],(#blocks)[2],(#blocks)[3],(#blocks)[4],(#blocks)[5])
+		print('Shuffle')
+		P2('channels', (#img)[1])
+		P2('height', (#img)[2])
+		P2('width', (#img)[3])
 
-	   for j = 1, (#allBlocks)[3] do
+		img = image.hsv2rgb(img:transpose(3,4):reshape(3,ih,iw))
+		print('Reorganize')
+		P2('channels', (#img)[1])
+		P2('height', (#img)[2])
+		P2('width', (#img)[3])
 
-		  allBlocks[{ 1,i,j }] = allBlocks[{ 1,i,rdmPositions[j] }]
-		  allBlocks[{ 2,i,j }] = allBlocks[{ 2,i,rdmPositions[j] }]
-		  allBlocks[{ 3,i,j }] = allBlocks[{ 3,i,rdmPositions[j] }]
-	   end
-	 end
-
-	 img = allBlocks:reshape((#blocks)[1],(#blocks)[2],(#blocks)[3],(#blocks)[4],(#blocks)[5])
-	 print('Shuffle')
-	 P2('channels', (#img)[1])
-	 P2('height', (#img)[2])
-	 P2('width', (#img)[3])
-
-	 img = image.hsv2rgb(img:transpose(3,4):reshape(3,ih,iw))
-	 print('Reorganize')
-	 P2('channels', (#img)[1])
-	 P2('height', (#img)[2])
-	 P2('width', (#img)[3])
-
-	 return img
+		return img
    end,
    cut = function(ifile, opt)
-	  opt = opt or {}
-	  local img       = image.load(ifile, 3, 'float' )
-	  local ih        = opt.ih or 1024
-	  local iw        = opt.iw or 1024
-	  local img       = image.scale(img,ih,iw)[{ {1,3} }]
-	  local imgSize   = #img
-	  local ncol      = opt.ncol or 16
-	  local nrow      = opt.nrow or 16
-	  local totalBlocksNo = ncol * nrow
-	  local blockw = imgSize[3] / ncol
-	  local blockh = imgSize[2] / nrow
-	  local blocks = img:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
-	  local allBlocks = blocks:reshape((#blocks)[1],
-						 (#blocks)[2]*(#blocks)[3],
-						 (#blocks)[4]*(#blocks)[5])
-	  -- Generate Random posiiton & Randomize Bin Posiiton
-	  local rdmPositions = torch.randperm((#allBlocks)[2])
-	  for i = 1, (#allBlocks)[2] do
-		 xlua.progress(i,(#allBlocks)[2])
-		 allBlocks[{ 1,i }] = allBlocks[{ 1,rdmPositions[i] }]
-		 allBlocks[{ 2,i }] = allBlocks[{ 2,rdmPositions[i] }]
-		 allBlocks[{ 3,i }] = allBlocks[{ 3,rdmPositions[i] }]
-	  end
-	  local img = allBlocks:reshape((#blocks)[1],
-						 (#blocks)[2],
-						 (#blocks)[3],
-						 (#blocks)[4],
-						 (#blocks)[5])
-	  local img = img:transpose(3,4):reshape(3,ih,iw)
-	  return img
+		opt = opt or {}
+		local img       = image.load(ifile, 3, 'float' )
+		local ih        = opt.ih or 1024
+		local iw        = opt.iw or 1024
+		local img       = image.scale(img,ih,iw)[{ {1,3} }]
+		local imgSize   = #img
+		local ncol      = opt.ncol or 16
+		local nrow      = opt.nrow or 16
+		local totalBlocksNo = ncol * nrow
+		local blockw = imgSize[3] / ncol
+		local blockh = imgSize[2] / nrow
+		local blocks = img:unfold(3,blockw,blockw):unfold(2,blockh,blockh)
+		local allBlocks = blocks:reshape((#blocks)[1],
+													(#blocks)[2]*(#blocks)[3],
+													(#blocks)[4]*(#blocks)[5])
+		-- Generate Random posiiton & Randomize Bin Posiiton
+		local rdmPositions = torch.randperm((#allBlocks)[2])
+		for i = 1, (#allBlocks)[2] do
+			xlua.progress(i,(#allBlocks)[2])
+			allBlocks[{ 1,i }] = allBlocks[{ 1,rdmPositions[i] }]
+			allBlocks[{ 2,i }] = allBlocks[{ 2,rdmPositions[i] }]
+			allBlocks[{ 3,i }] = allBlocks[{ 3,rdmPositions[i] }]
+		end
+		local img = allBlocks:reshape((#blocks)[1],
+												(#blocks)[2],
+												(#blocks)[3],
+												(#blocks)[4],
+												(#blocks)[5])
+		local img = img:transpose(3,4):reshape(3,ih,iw)
+		return img
    end,
 }
-
 MAD.pixels.img.blur = {
-   gaussian = function(img,kernelsize)
-	  local h           = img:size(2)
-	  local w           = img:size(3)
-	  local kernelsize  = kernelsize or math.min(w,h)/8
-	  -- Gaussian Kernel + Transpose
-	  local g1 = image.gaussian1D(kernelsize):resize(1,kernelsize):float()
-	  local g2 = g1:t() --transpose(1,2)
-	  -- Check Dimensiosn
-	  -- print(#g1)
-	  -- print(#g2)
-	  -- Resize & Clone
-	  local i = img
-	  c = i:clone():fill(1)
-	  -- print{c,g1}
-	  -- Convolution
-	  c = image.convolve(c, g1, 'same')
-	  c = image.convolve(c, g2, 'same')
-	  i = image.convolve(i, g1, 'same')
-	  i = image.convolve(i, g2, 'same')
-	  -- Component-wise division + retransform
-	  i:cdiv(c)
-	  return i
-   end,
+	gaussian = function(img,kernelsize)
+		local h           = img:size(2)
+		local w           = img:size(3)
+		local kernelsize  = kernelsize or math.min(w,h)/8
+		-- Gaussian Kernel + Transpose
+		local g1 = image.gaussian1D(kernelsize):resize(1,kernelsize):float()
+		local g2 = g1:t() --transpose(1,2)
+		local i = img
+		c = i:clone():fill(1)
+		-- print{c,g1}
+		-- Convolution
+		c = image.convolve(c, g1, 'same')
+		c = image.convolve(c, g2, 'same')
+		i = image.convolve(i, g1, 'same')
+		i = image.convolve(i, g2, 'same')
+		-- Component-wise division + retransform
+		i:cdiv(c)
+		return i
+	end,
    aperture = function(img,apertureSize)
-	  apertureSize = tostring(apertureSize)
-	  local aperture = image.load("assets/mad.pixels/"..'aperture_'..apertureSize..'.png',4)
-	  aperture:div(aperture:sum())
-	  local res = image.convolve(img,aperture[1],'same')
-	  res:div(res:max())
-	  return res
+		apertureSize = tostring(apertureSize)
+		local aperture = image.load("assets/mad.pixels/"..'aperture_'..apertureSize..'.png',4)
+		aperture:div(aperture:sum())
+		local res = image.convolve(img,aperture[1],'same')
+		res:div(res:max())
+		return res
    end
 }
 MAD.pixels.img.color = {
@@ -1672,7 +1669,6 @@ end
 MAD.mosaics = {}
 function MAD.mosaics.files2map(opt)
 	opt = opt or {}
-
 	local files = opt.files or error('!!files')
 	local mr    = opt.mr or 1
 	local iw    = opt.iw or 64
@@ -1957,103 +1953,96 @@ function MAD.mosaics.m2.make(opt)
 
 	local geometry = {}
 	for i=1, nCol do
-	local columnTiles = {}
-	local usedHeight = 0
-	local leftHeight = h_mosaic
-	local nRow = 0
-	while usedHeight < h_mosaic - minHeight do
-	local tile = {}
-	tile['width'] = w_column
-	tile['ratio'] = torch.uniform(tile_min_ratio, tile_max_ratio)
-	tile['left'] = (i-1) * w_column + 1
-	tile['right'] = tile.left + w_column - 1
-	tile['top'] = usedHeight + 1
-	if leftHeight < minHeight then
-	tile['height'] = h_mosaic - usedHeight
-	else
-	tile['height']  = math.floor(tile['width']/tile['ratio'])
-	end
-	tile['bottom'] = usedHeight + tile['height']
-	usedHeight = usedHeight + tile['height']
-	leftHeight = h_mosaic - usedHeight
-	table.insert(columnTiles, tile)
-	nRow = nRow + 1
-	nTiles = nTiles + 1
-	end
-	table.insert(geometry, columnTiles)
+		local columnTiles = {}
+		local usedHeight = 0
+		local leftHeight = h_mosaic
+		local nRow = 0
+		while usedHeight < h_mosaic - minHeight do
+			local tile = {}
+			tile['width'] = w_column
+			tile['ratio'] = torch.uniform(tile_min_ratio, tile_max_ratio)
+			tile['left'] = (i-1) * w_column + 1
+			tile['right'] = tile.left + w_column - 1
+			tile['top'] = usedHeight + 1
+			if leftHeight < minHeight then
+				tile['height'] = h_mosaic - usedHeight
+			else
+				tile['height']  = math.floor(tile['width']/tile['ratio'])
+			end
+			tile['bottom'] = usedHeight + tile['height']
+			usedHeight = usedHeight + tile['height']
+			leftHeight = h_mosaic - usedHeight
+			table.insert(columnTiles, tile)
+			nRow = nRow + 1
+			nTiles = nTiles + 1
+		end
+		table.insert(geometry, columnTiles)
 	end
 
 	-- if not enough files in directory given geometry design
 	if nTiles > nFiles then
-	local diff = nTiles - nFiles
-	for i=1, diff + 1 do
-	table.insert(files, files[i])
-	end
-	files = mad.list.permute(files)
+		local diff = nTiles - nFiles
+		for i=1, diff + 1 do
+			table.insert(files, files[i])
+		end
+		files = mad.list.permute(files)
 	end
 
 	-- draw mosaic
 	local clock = 1
 	local map = torch.FloatTensor(3, h_mosaic, w_mosaic):uniform( 0,.1)
 	for i, column in ipairs(geometry) do
-	for j, tile in ipairs(column) do
-	clock = clock + 1
-	xlua.progress(clock, nTiles)
+		for j, tile in ipairs(column) do
+			clock = clock + 1
+			xlua.progress(clock, nTiles)
+			local tile = geometry[i][j]
+			local t = tile['top']
+			local l = tile['left']
+			local b = tile['bottom']
+			local r = tile['right']
+			if j == #column then
+				b = h_mosaic
+			end
+			local ifile = files[clock]
+			local img = image.load(ifile)
+			img = image.scale( MAD.pixels.img.centerRatioCrop(img, tile['ratio']), tile['width'], b-t+1)
+			local shift = torch.uniform()
+			img = MAD.pixels.color.filter(img)
+			local draw = mad.list.permute({true,false})[1]
+			if draw then
+			img = MAD.pixels.color.bw3channels(img)
+		end
+		map[{ {},{t,b},{l,r} }] = img
 
-	local tile = geometry[i][j]
-	local t = tile['top']
-	local l = tile['left']
-	local b = tile['bottom']
-	local r = tile['right']
-	if j == #column then
-	b = h_mosaic
-	end
-	local ifile = files[clock]
-	local img = image.load(ifile)
-	img = image.scale( MAD.pixels.img.centerRatioCrop(img, tile['ratio']), tile['width'], b-t+1)
-	local shift = torch.uniform()
-	-- local shift = .9
-
-	-- Distortions
-	-- img = MAD.pixels.color.rotate(img, shift)
-	img = MAD.pixels.color.filter(img)
-	local draw = mad.list.permute({true,false})[1]
-	if draw then
-	img = MAD.pixels.color.bw3channels(img)
-	end
-
-	-- draw
-	map[{ {},{t,b},{l,r} }] = img
-
-	end
+		end
 	end
 	return map
 end
 function MAD.mosaics.m2.onBackground(map, ofile)
-   local bgd = image.load('og003.jpg')
-   t = 1
-   b = h_mosaic
-   l = h_mosaic - w_mosaic + 1
-   r = h_mosaic
-   bgd[{ {},{t,b},{l,r} }] = map
-   image.save(ofile, bgd)
+	local bgd = image.load('og003.jpg')
+	t = 1
+	b = h_mosaic
+	l = h_mosaic - w_mosaic + 1
+	r = h_mosaic
+	bgd[{ {},{t,b},{l,r} }] = map
+	image.save(ofile, bgd)
 end
 function MAD.mosaics.m2.fromDirectoriesList(idir)
-   local idirs = {
-	  "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/1/1. ok.380to760",
-	  "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.JustBoobs",
-	  "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.JustPussy",
-	  "/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.Ass",
-   }
+	local idirs = {
+		"/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/1/1. ok.380to760",
+		"/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.JustBoobs",
+		"/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.JustPussy",
+		"/Volumes/1tb-PSAi/PSAi-Assets/Assets-Lightroom/5/5. xx.Woman.Ass",
+	}
    local name = path.basename(idir)
    local ofile = "/Users/laeh/Pictures/TMP/m2-"..name..'-'..mad.uid(2)..'.jpg'
    local img = m2_make({
-	  idir = idir,
-	  h_mosaic =  h_mosaic,
-	  w_mosaic =  w_mosaic,
-	  nCol =  16,
-	  tile_min_ratio = .16,
-	  tile_max_ratio = .84,
+		idir = idir,
+		h_mosaic =  h_mosaic,
+		w_mosaic =  w_mosaic,
+		nCol =  16,
+		tile_min_ratio = .16,
+		tile_max_ratio = .84,
    })
 
    local map = image.load('/Users/laeh/Documents/ilovelua/mad/PS002-bgd.jpg')
@@ -2064,38 +2053,35 @@ function MAD.mosaics.m2.fromDirectoriesList(idir)
 
    map[{ {},{t,b},{l,r} }] = img
    image.save(ofile, map)
-   -- os.execute('open "'..ofile..'"')
 end
 function MAD.mosaics.m2.fromImagesList()
-   local ifiles = {
-	  "/Users/laeh/Desktop/emily_ratajkowski1.jpg",
-	  "/Users/laeh/Desktop/emily_ratajkowski14.jpg",
-	  "/Users/laeh/Documents/ilovelua/mad/jay.jpg",
-	  "/Users/laeh/Documents/ilovelua/mad/rick.jpg",
+	local ifiles = {
+		"/Users/laeh/Desktop/emily_ratajkowski1.jpg",
+		"/Users/laeh/Desktop/emily_ratajkowski14.jpg",
+		"/Users/laeh/Documents/ilovelua/mad/jay.jpg",
+		"/Users/laeh/Documents/ilovelua/mad/rick.jpg",
    }
    for _, ifile in ipairs(ifiles) do
-	  for i=1, 10 do
-		 local name = path.basename(ifile)
-		 local ofile = "/Users/laeh/Pictures/TMP/m2-"..name..'-'..mad.uid(2)..'.jpg'
-		 local img = MAD.mosaics.m2.make({
-			ifile = ifile,
-			h_mosaic =  h_mosaic,
-			w_mosaic =  w_mosaic,
-			nCol =  16,
-			tile_min_ratio = .16,
-			tile_max_ratio = .84,
-		 })
-		 local map = image.load('/Users/laeh/Documents/ilovelua/mad/PS002-bgd.jpg')
-		 t = 1
-		 b = h_mosaic
-		 l = h_mosaic - w_mosaic + 1
-		 r = h_mosaic
-
-		 map[{ {},{t,b},{l,r} }] = img
-		 -- pritn(ofile)
-		 image.save(ofile, map)
-	  end
-   end
+	  	for i=1, 10 do
+			 local name = path.basename(ifile)
+			 local ofile = "/Users/laeh/Pictures/TMP/m2-"..name..'-'..mad.uid(2)..'.jpg'
+			 local img = MAD.mosaics.m2.make({
+				ifile = ifile,
+				h_mosaic =  h_mosaic,
+				w_mosaic =  w_mosaic,
+				nCol =  16,
+				tile_min_ratio = .16,
+				tile_max_ratio = .84,
+		 	})
+			local map = image.load('/Users/laeh/Documents/ilovelua/mad/PS002-bgd.jpg')
+			t = 1
+			b = h_mosaic
+			l = h_mosaic - w_mosaic + 1
+			r = h_mosaic
+			map[{ {},{t,b},{l,r} }] = img
+			image.save(ofile, map)
+		end
+	end
 end
 
 return MAD
