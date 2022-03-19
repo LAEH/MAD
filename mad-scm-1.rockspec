@@ -2,7 +2,7 @@ package = "MAD"
 version = "scm-1"
 
 source = {
-   url = "git@github.com/LAEH/MAD",
+   url = "git://github.com/LAEH/MAD",
    branch = "master"
 }
 
